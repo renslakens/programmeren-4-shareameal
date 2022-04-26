@@ -17,7 +17,7 @@ let controller = {
             const error = {
                 status: 400,
                 result: err.message,
-            }
+            };
             console.log(error.message);
             // res.status(400).json({
             //     status: 400,
@@ -45,7 +45,7 @@ let controller = {
             const error = {
                 status: 403,
                 result: `Email already in use`
-            }
+            };
             next(error);
             console.log(user.email + " already in use");
             // res.status(403).json({

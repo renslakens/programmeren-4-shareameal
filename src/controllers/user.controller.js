@@ -13,16 +13,21 @@ let controller = {
             assert(typeof emailAdress === 'string', 'Email address must be a string');
             assert(typeof password === 'string', 'Password must be a string');
             next();
-        } catch (error) {
-            console.log(error.message);
-            res.status(400).json({
+        } catch (err) {
+            const error = {
                 status: 400,
-                result: error.toString()
-            })
+                result: err.message,
+            }
+            console.log(error.message);
+            // res.status(400).json({
+            //     status: 400,
+            //     result: error.toString()
+            // });
+            next(error);
         }
     },
 
-    addUser: (req, res) => {
+    addUser: (req, res, next) => {
         let user = req.body;
 
         user = {
@@ -37,11 +42,16 @@ let controller = {
         });
 
         if (emailCheck) {
-            console.log(user.email + " already in use");
-            res.status(403).json({
+            const error = {
                 status: 403,
-                result: `Email already in use`,
-            });
+                result: `Email already in use`
+            }
+            next(error);
+            console.log(user.email + " already in use");
+            // res.status(403).json({
+            //     status: 403,
+            //     result: ,
+            // });
         } else {
             id++;
             database.push(user);

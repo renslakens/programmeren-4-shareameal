@@ -20,12 +20,12 @@ let controller = {
             console.log(user.email + " already in use");
             res.status(403).json({
                 status: 403,
-                result: `email already in use`,
+                result: `Email already in use`,
             });
         } else {
             id++;
             database.push(user);
-            console.log("added " + user);
+            console.log("Added " + user);
             res.status(201).json({
                 status: 201,
                 result: database,
@@ -43,7 +43,7 @@ let controller = {
     getUserByID: (req, res) => {
         const userId = req.params.userId;
 
-        console.log(`User met ID ${userId} gezocht`);
+        console.log(`Looking for user with ID ${userId}`);
         let user = database.filter((item) => item.id == userId);
 
         if (user.length > 0) {

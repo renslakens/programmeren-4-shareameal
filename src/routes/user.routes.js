@@ -21,18 +21,18 @@ router.get("/api/user/profile", (req, res) => {
 });
 
 //Get all users
-router.get("/api/user", userController.getAllUsers());
+router.get("/api/user", userController.getAllUsers);
 
 //Make new user
-router.post("/api/user", userController.addUser());
+router.post("/api/user", userController.validateUser, userController.addUser);
 
 //Get specific user
-router.get("/api/user/:userId", userController.getUserByID());
+router.get("/api/user/:userId", userController.getUserByID);
 
 //Edit specific user
-router.put("/api/user/:userId", userController.editUserByID());
+router.put("/api/user/:userId", userController.editUserByID);
 
 //Delete specific user
-router.delete("/api/user/", userController.deleteUserByID());
+router.delete("/api/user/", userController.deleteUserByID);
 
 module.exports = router;

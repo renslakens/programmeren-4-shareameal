@@ -14,7 +14,7 @@ describe('Login', () => {
             done();
         });
 
-        it('When a required input is missing, a valid error should be returned', (done) => {
+        it('TC-201 When a required input is missing, a valid error should be returned', (done) => {
             chai
                 .request(server)
                 .post('/api/user')
@@ -31,6 +31,9 @@ describe('Login', () => {
                     result.should.be.an('string').that.equals('First Name must be a string')
                     done();
                 });
+        });
+        it('TC-202 Other test example', (done) => {
+
         });
     });
 });

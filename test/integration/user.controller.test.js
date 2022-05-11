@@ -51,7 +51,7 @@ describe('UC-User', () => {
                 .request(server)
                 .post('/api/user')
                 .send({
-                    firstName: 'Test',
+                    firstName: 'Rens',
                     lastName: 'Lakens',
                     emailAdress: 'rens@lakens.org',
                     password: 9,
@@ -104,7 +104,7 @@ describe('UC-User', () => {
             const user = {
                 firstName: 'Rens',
                 lastName: 'Lakens',
-                emailAdress: 'rens@lakens.org',
+                emailAdress: 'rens@sfsdfsdfsfa.org',
                 password: 'wachtwoord',
                 isActive: 1,
                 phoneNumber: '0612345678',

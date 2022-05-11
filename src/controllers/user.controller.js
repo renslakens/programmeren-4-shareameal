@@ -1,5 +1,5 @@
 const assert = require('assert');
-const dbconnection = require('../../dbconnection');
+const pool = require('../../dbconnection');
 let database = [];
 let id = 0;
 

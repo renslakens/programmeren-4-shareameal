@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 const mysql = require('mysql');
+=======
+const mysql = require('mysql2');
+>>>>>>> feature-testing
 require('dotenv').config();
 
 const pool = mysql.createPool({
@@ -10,8 +14,20 @@ const pool = mysql.createPool({
     database: process.env.DB_DATABASE
 });
 
+<<<<<<< HEAD
 module.exports = pool;
 
 pool.on('acquire', function(connection) {
     console.log('Connection %d acquired', connection.threadId)
 });
+=======
+// pool.getConnection(function(err, connection) {
+//     if (err) throw err;
+// });
+
+pool.on('acquire', function(connection) {
+    console.log('Connection %d acquired', connection.threadId)
+});
+
+module.exports = pool;
+>>>>>>> feature-testing

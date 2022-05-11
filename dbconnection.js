@@ -10,9 +10,9 @@ const pool = mysql.createPool({
     database: process.env.DB_DATABASE
 });
 
-pool.getConnection(function(err, connection) {
-    if (err) throw err;
-});
+// pool.getConnection(function(err, connection) {
+//     if (err) throw err;
+// });
 
 pool.on('acquire', function(connection) {
     console.log('Connection %d acquired', connection.threadId)

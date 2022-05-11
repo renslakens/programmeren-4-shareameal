@@ -6,17 +6,7 @@ let id = 0;
 let controller = {
     validateUser: (req, res, next) => {
         let user = req.body;
-        let {
-            firstName,
-            lastName,
-            emailAdress,
-            password,
-            isActive,
-            phoneNumber,
-            roles,
-            street,
-            city,
-        } = user;
+        let { firstName, lastName, emailAdress, password, isActive, phoneNumber, roles, street, city, } = user;
         try {
             assert(typeof firstName === "string", "firstName must be a string");
             assert(typeof lastName === "string", "lastName must be a string");
@@ -27,37 +17,19 @@ let controller = {
             assert(typeof roles === "string", "roles must be a string");
             assert(typeof street === "string", "steet must be a string");
             assert(typeof city === "string", "city must be a string");
-            assert(
-                firstName.length > 0,
-                "firstName must be atleast one character long"
-            );
-            assert(
-                lastName.length > 0,
-                "lastName must be atleast one character long"
-            );
-            assert(
-                emailAdress.length > 0,
-                "emailAdress must be atleast one character long"
-            );
-            assert(
-                password.length > 0,
-                "password must be atleast one character long"
-            );
+            assert(firstName.length > 0, "firstName must be atleast one character long");
+            assert(lastName.length > 0, "lastName must be atleast one character long");
+            assert(emailAdress.length > 0, "emailAdress must be atleast one character long");
+            assert(password.length > 0, "password must be atleast one character long");
             assert(isActive == 1 || isActive == 0, "isActive must be a 0 or 1");
-            assert(
-                phoneNumber.length > 0,
-                "phonenumber must be atleast one character long"
-            );
-            assert(
-                roles.includes("editor" || "guest"),
-                "A user must have atleast one role"
-            );
+            assert(phoneNumber.length > 0, "phonenumber must be atleast one character long");
+            assert(roles.includes("editor" || "guest"), "A user must have atleast one role");
             assert(street.length > 0, "street must be atleast one character long");
-            assert(city.length > 0, "City must be atleast one character long");
+            assert(city.length > 0, "city must be atleast one character long");
 
             next();
         } catch (err) {
-            console.log("User validation found invalid fields!");
+            console.log("User validation found invalid fields");
             const error = {
                 status: 400,
                 result: err.message,
@@ -68,10 +40,7 @@ let controller = {
     },
     validateNumber: (req, res, next) => {
         try {
-            assert(
-                Number.isInteger(parseInt(req.params.userId)),
-                "Id must be a number"
-            );
+            assert(Number.isInteger(parseInt(req.params.userId)), "ID must be a number");
             next();
         } catch (err) {
             const error = {
@@ -144,8 +113,8 @@ let controller = {
                 } else {
                     const error = {
                         status: 404,
-                        message: "User with provided Id does not exist",
-                        result: "User with provided Id does not exist",
+                        message: "User with provided ID does not exist",
+                        result: "User with provided ID does not exist",
                     };
                     next(error);
                 }

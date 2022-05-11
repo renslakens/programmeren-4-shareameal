@@ -13,7 +13,7 @@ app.all("*", (req, res, next) => {
     next();
 });
 
-app.use(userRouter);
+app.use("/api/user", userRouter);
 
 app.all("*", (req, res) => {
     res.status(401).json({

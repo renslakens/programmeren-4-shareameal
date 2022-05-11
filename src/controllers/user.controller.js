@@ -109,22 +109,23 @@ let controller = {
         const userId = req.params.id;
         const user = req.body;
         pool.query(
-            `UPDATE user SET ? WHERE id = ?`, [newUserInfo, userId], (err, res, fields) => {
+            `UPDATE user SET firstName = '${user.firstName}', lastName = '${user.lastName}', street = '${user.street}', city = '${user.city}', emailAdress = '${user.emailAdress}', password = '${user.password}' WHERE id = ${userId}`,
+            (err, results) => {
                 const { affectedRows } = results;
                 if (err) throw err;
 
-                if (res.affectedRows > 0) {
-                    res.status(200).json({
-                        status: 200,
-                        result: res,
-                    });
-                } else {
-                    res.status(404).json({
+                if (affectedRows == 0) {
+                    const error = {
                         status: 404,
-                        message: "User does not exist",
-                    });
+                        message: 'User with provided ID does not exist',
+                        result: 'User with provided ID does not exist',
+                    };
+                    next(error);
+                } else {
+                    res.status(200).json({ status: 200, result: 'Succusful update!' });
                 }
-            });
+            }
+        );
     },
     deleteUser: (req, res, next) => {
         const userId = req.params.id;

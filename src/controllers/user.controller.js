@@ -6,30 +6,20 @@ let id = 0;
 let controller = {
     validateUser: (req, res, next) => {
         let user = req.body;
-        let { firstName, lastName, emailAdress, password, isActive, phoneNumber, roles, street, city, } = user;
+        let { firstName, lastName, street, city, isActive, emailAdress, phoneNumber, password } = user;
         try {
-            assert(typeof firstName === "string", "firstName must be a string");
-            assert(typeof lastName === "string", "lastName must be a string");
-            assert(typeof emailAdress === "string", "emailAdress must be a string");
-            assert(typeof password === "string", "password must be a string");
-            assert(typeof isActive === "number", "isActive must be either 0 or 1");
-            assert(typeof phoneNumber === "string", "phonenumber must a string");
-            assert(typeof roles === "string", "roles must be a string");
-            assert(typeof street === "string", "steet must be a string");
-            assert(typeof city === "string", "city must be a string");
-            assert(firstName.length > 0, "firstName must be atleast one character long");
-            assert(lastName.length > 0, "lastName must be atleast one character long");
-            assert(emailAdress.length > 0, "emailAdress must be atleast one character long");
-            assert(password.length > 0, "password must be atleast one character long");
-            assert(isActive == 1 || isActive == 0, "isActive must be a 0 or 1");
-            assert(phoneNumber.length > 0, "phonenumber must be atleast one character long");
-            assert(roles.includes("editor" || "guest"), "A user must have atleast one role");
-            assert(street.length > 0, "street must be atleast one character long");
-            assert(city.length > 0, "city must be atleast one character long");
+            assert(typeof firstName === 'string', 'The firstname must be a string');
+            assert(typeof lastName === 'string', 'The lastName must be a string');
+            assert(typeof street === 'string', 'The street must be a string');
+            assert(typeof city === 'string', 'The city must be a string');
+            assert(typeof isActive === 'number', 'IsActive must be a number');
+            assert(typeof emailAdress === 'string', 'The emailAddress must be a string');
+            assert(typeof phoneNumber === 'string', 'The phoneNumber must be a string');
+            assert(typeof password === 'string', 'The password must a string');
 
             next();
         } catch (err) {
-            console.log("User validation found invalid fields");
+            console.log(err.message);
             const error = {
                 status: 400,
                 result: err.message,
@@ -38,58 +28,47 @@ let controller = {
             next(error);
         }
     },
-    validateNumber: (req, res, next) => {
+    validateId: (req, res, next) => {
+        const userId = req.params.id;
         try {
-            assert(Number.isInteger(parseInt(req.params.userId)), "ID must be a number");
+            assert(Number.isInteger(parseInt(userId)), 'ID must be a number');
             next();
         } catch (err) {
+            console.log(req.body);
             const error = {
                 status: 400,
                 message: err.message,
             };
+
+            console.log(error);
             next(error);
         }
     },
     addUser: (req, res, next) => {
-        let user = req.body;
-        const values = [
-            user.firstName,
-            user.lastName,
-            user.isActive,
-            user.emailAdress,
-            user.password,
-            user.phoneNumber,
-            user.roles,
-            user.street,
-            user.city,
-        ];
-
-        pool.query(
-            "INSERT INTO user (firstName, lastName, isActive, emailAdress, password, phoneNumber, roles, street, city) VALUES (?,?,?,?,?,?,?,?,?)",
-            values,
-            (err, result) => {
-                if (err) {
-                    console.log("User has not been inserted!");
-                    const error = {
-                        status: 409,
-                        result: "User is niet toegevoegd in database",
-                    };
-                    next(error);
-                } else {
-                    console.log(result.insertId);
-                    user.userId = result.insertId;
-                    res.status(201).json({
-                        status: 201,
-                        message: "User is toegevoegd in database",
-                        result: user,
-                    });
-                }
+        const user = req.body;
+        pool.query('INSERT INTO user SET ?', user, (dbError, result) => {
+            if (dbError) {
+                console.log(dbError.message);
+                const error = {
+                    status: 409,
+                    message: 'User has not been added',
+                    result: 'User is niet toegevoegd in database',
+                };
+                next(error);
+            } else {
+                console.log(result.insertId);
+                user.userId = result.insertId;
+                res.status(201).json({
+                    status: 201,
+                    message: 'User is toegevoegd in database',
+                    result: user,
+                });
             }
-        );
+        });
     },
     getAllUsers: (req, res) => {
         let users = [];
-        pool.query("SELECT * FROM user", (error, results, fields) => {
+        pool.query('SELECT * FROM user', (error, results, fields) => {
             results.forEach((user) => {
                 users.push(user);
             });
@@ -100,12 +79,13 @@ let controller = {
         });
     },
     getUserById: (req, res, next) => {
-        const userId = req.params.userId;
+        const userId = req.params.id;
         pool.query(
             `SELECT * FROM user WHERE id =${userId}`,
             (err, results, fields) => {
                 if (err) throw err;
-                if (results.length > 0) {
+
+                if (results[0]) {
                     res.status(200).json({
                         status: 200,
                         result: results,
@@ -113,8 +93,7 @@ let controller = {
                 } else {
                     const error = {
                         status: 404,
-                        message: "User with provided ID does not exist",
-                        result: "User with provided ID does not exist",
+                        message: 'User with provided ID does not exist',
                     };
                     next(error);
                 }
@@ -123,44 +102,44 @@ let controller = {
     },
     getUserProfile: (req, res) => {
         res.status(200).json({
-            message: "Not implemented yet",
+            message: 'Not implemented yet',
         });
     },
     updateUser: (req, res, next) => {
-        const userId = req.params.userId;
+        const userId = req.params.id;
         const user = req.body;
         pool.query(
             `UPDATE user SET firstName = '${user.firstName}', lastName = '${user.lastName}', street = '${user.street}', city = '${user.city}', emailAdress = '${user.emailAdress}', password = '${user.password}' WHERE id = ${userId}`,
             (err, results) => {
-                const { changedRows } = results;
+                const { affectedRows } = results;
                 if (err) throw err;
 
-                if (changedRows == 0) {
+                if (affectedRows == 0) {
                     const error = {
                         status: 404,
-                        message: "User with provided id does not exist",
-                        result: "User with provided id does not exist",
+                        message: 'User with provided ID does not exist',
+                        result: 'User with provided ID does not exist',
                     };
                     next(error);
                 } else {
-                    res.status(200).json({ status: 200, result: "Succusful update!" });
+                    res.status(200).json({ status: 200, result: 'Succusful update!' });
                 }
             }
         );
     },
     deleteUser: (req, res, next) => {
-        const userId = req.params.userId;
+        const userId = req.params.id;
         pool.query(`DELETE FROM user WHERE id=${userId}`, (err, results) => {
             if (err) throw err;
             const { affectedRows } = results;
             if (!affectedRows) {
                 const error = {
                     status: 400,
-                    result: "User does not exist",
+                    result: 'User does not exist',
                 };
                 next(error);
             } else {
-                res.status(200).json({ status: 200, result: "Succesful deletion" });
+                res.status(200).json({ status: 200, result: 'Succesful deletion' });
             }
         });
     },

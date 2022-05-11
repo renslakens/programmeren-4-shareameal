@@ -1,24 +1,29 @@
-const express = require("express");
+const express = require('express');
 const app = express();
+<<<<<<< HEAD
 const port = process.env.PORT;
 const bodyParser = require("body-parser");
+=======
+const port = process.env.PORT || 3000;
+const bodyParser = require('body-parser');
+>>>>>>> feature-testing
 const userRouter = require('./src/routes/user.routes');
 
 app.use(bodyParser.json());
 
-app.all("*", (req, res, next) => {
+app.all('*', (req, res, next) => {
     const method = req.method;
 
     console.log(`Method ${method} is aangeroepen`);
     next();
 });
 
-app.use("/api/user", userRouter);
+app.use('/api/user', userRouter);
 
-app.all("*", (req, res) => {
+app.all('*', (req, res) => {
     res.status(401).json({
         status: 401,
-        result: "End-point not found",
+        result: 'End-point not found',
     });
 });
 

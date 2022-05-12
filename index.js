@@ -3,6 +3,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 const bodyParser = require('body-parser');
 const userRouter = require('./src/routes/user.routes');
+const authRouter = require('./src/routes/auth.routes')
 
 app.use(bodyParser.json());
 
@@ -14,6 +15,7 @@ app.all('*', (req, res, next) => {
 });
 
 app.use('/api/user', userRouter);
+app.use('/api', authRouter);
 
 app.all('*', (req, res) => {
     res.status(401).json({

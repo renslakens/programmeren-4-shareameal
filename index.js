@@ -2,8 +2,9 @@ const express = require('express');
 const app = express();
 const port = process.env.PORT || 3000;
 const bodyParser = require('body-parser');
-const userRouter = require('./src/routes/user.routes');
-const authRouter = require('./src/routes/auth.routes')
+const userRoutes = require('./src/routes/user.routes');
+const authRoutes = require('./src/routes/auth.routes');
+const mealRoutes = require('./src/routes/meal.routes');
 
 app.use(bodyParser.json());
 
@@ -14,8 +15,9 @@ app.all('*', (req, res, next) => {
     next();
 });
 
-app.use('/api/user', userRouter);
-app.use('/api', authRouter);
+app.use('/api/user', userRoutes);
+app.use('/api', authRoutes);
+app.use('api/meal', mealRoutes);
 
 app.all('*', (req, res) => {
     res.status(401).json({

@@ -2,49 +2,9 @@ const assert = require('assert');
 const pool = require('../../dbconnection');
 
 let controller = {
-    validateUser: (req, res, next) => {
-        let user = req.body;
-        let { firstName, lastName, street, city, isActive, emailAdress, phoneNumber, password } = user;
-        try {
-            assert(typeof firstName === 'string', 'The firstname must be a string');
-            assert(typeof lastName === 'string', 'The lastName must be a string');
-            assert(typeof street === 'string', 'The street must be a string');
-            assert(typeof city === 'string', 'The city must be a string');
-            assert(typeof isActive === 'number', 'IsActive must be a number');
-            assert(typeof emailAdress === 'string', 'The emailAddress must be a string');
-            assert(typeof phoneNumber === 'string', 'The phoneNumber must be a string');
-            assert(typeof password === 'string', 'The password must a string');
-
-            next();
-        } catch (err) {
-            console.log(err.message);
-            const error = {
-                status: 400,
-                result: err.message,
-                message: err.message,
-            };
-            next(error);
-        }
-    },
-    validateId: (req, res, next) => {
-        const userId = req.params.id;
-        try {
-            assert(Number.isInteger(parseInt(userId)), 'ID must be a number');
-            next();
-        } catch (err) {
-            console.log(req.body);
-            const error = {
-                status: 400,
-                message: err.message,
-            };
-
-            console.log(error);
-            next(error);
-        }
-    },
-    addUser: (req, res, next) => {
+    addMeal: (req, res, next) => {
         const user = req.body;
-        pool.query('INSERT INTO user SET ?', user, (dbError, result) => {
+        pool.query('INSERT INTO meal SET ?', user, (dbError, result) => {
             if (dbError) {
                 console.log(dbError.message);
                 const error = {

@@ -1,21 +1,42 @@
-# Share A Meal API Server
+# Share A Meal REST API Server
 
+## Description
+A REST API server made for a school project for Avans Hogeschool.
 
+With this API you can add, edit and delete users and meals and you can register and login to your account.
 
-## Getting started
+The goal of this API is to share your meal you submitted so you waste less food and meet new people.
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+## Installation
+API is currently running on a heroku server: [shareamealrensl.herokuapp.com/api](https://shareamealrensl.herokuapp.com/api)
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+If you want to install this server yourself, simply run this command:
 
-## Add your files
+``git clone https://github.com/renslakens/programmeren-4-shareameal.git``
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+Furhter you need to install these libraries with [NPM](https://www.npmjs.com/):
 
-```
-cd existing_repo
-git remote add origin https://github.com/renslakens/programmeren-4-shareameal.git
-git branch -M main
-git push -uf origin main
-```
+``npm i dotenv express jsonwebtoken mysql2 tracer``
+
+- The library [dotenv](https://www.npmjs.com/package/dotenv) is used for environment variables
+- [Express](https://www.npmjs.com/package/express) is used for running the server
+- For validating a user the library [jsonwebtoken](https://www.npmjs.com/package/jsonwebtoken) is used
+- [Mysql2](https://www.npmjs.com/package/mysql2) is used for connecting to the online database
+- I used logging troughout the API and [tracer](https://www.npmjs.com/package/tracer) is used for that.
+
+## Usage
+The current usage is documented at [this](https://shareameal-api.herokuapp.com/docs/) page.
+
+## Support
+If you run in to any problems regarding tho this project or another project of mine feel free to contact me at r.lakens@student.avans.nl.
+
+## Authors
+- Robin Schellius
+- Davide Ambesi
+- Rens Lakens
+
+## License
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
+## Project status
+[![Deploy to Heroku](https://github.com/renslakens/programmeren-4-shareameal/actions/workflows/main.yml/badge.svg)](https://github.com/renslakens/programmeren-4-shareameal/actions/workflows/main.yml)

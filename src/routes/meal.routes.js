@@ -1,21 +1,30 @@
-const express = require('express')
-const router = express.Router()
-const mealController = require('../controllers/meal.controller')
+const express = require('express');
+const router = express.Router();
+const mealController = require('../controllers/meal.controller');
+const authController = require('../controllers/auth.controller');
 
-router.post('/', userController.validateUser, userController.addUser);
+//Get all meals
+router.get('/', mealController.getAllMeals);
 
-router.get('/', userController.getAllUsers);
+//Get specific meal
+router.get('/:id', mealController.validateId, mealController.getMealById);
 
-//Get route for profile
-router.get('/profile', userController.getUserProfile);
+//Add meal
+router.post('/', authController.validateToken, mealController.addMeal);
 
-//Get routes for specific users
-router.get('/:id', userController.validateId, userController.getUserById);
+//Edit specific meal
+router.post('/:id', authController.validateToken, mealController.validateId, mealController.updateMeal);
 
-//Put routes for specific users
-router.put('/:id', userController.validateId, userController.validateUser, userController.updateUser);
+//Delete specific meal
+router.delete('/:id', authController.validateToken, mealController.validateId, mealController.deleteMeal);
 
-//Delete routes for specific users
-router.delete('/:id', userController.validateId, userController.deleteUser);
+//Register user to meal
+router.post('/:id/signup', authController.validateToken, mealController.validateId, mealController.register);
+
+//Get list of participants
+router.get('/:id/participants', authController.validateToken, mealController.validateId, mealController.getAllParticipants);
+
+//Get specific participant
+router.get('/:id/participants/:id', authController.validateToken, mealController.validateId, mealController.getParticipantById);
 
 module.exports = router;

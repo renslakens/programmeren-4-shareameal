@@ -20,15 +20,9 @@ app.all('*', (req, res, next) => {
     next();
 });
 
-app.all('*', (req, res) => {
-    res.status(401).json({
-        status: 401,
-        result: 'End-point not found',
-    });
-});
-
 //Default route
 app.get("/", (req, res) => {
+    logger.debug('User is on default endpoint');
     res.status(200).json({
         status: 200,
         result: "Share A Meal API",
@@ -43,6 +37,13 @@ app.use('/api/auth', authRoutes);
 
 //Meal route
 app.use('/api/meal', mealRoutes);
+
+app.all('*', (req, res) => {
+    res.status(401).json({
+        status: 401,
+        result: 'End-point not found',
+    });
+});
 
 //Error handler
 app.use((err, req, res, next) => {

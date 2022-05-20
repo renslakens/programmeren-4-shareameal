@@ -6,11 +6,11 @@ const authController = require('../controllers/auth.controller');
 //Get all meals
 router.get('/', mealController.getAllMeals);
 
-// //Get specific meal
-// router.get('/:id', mealController.validateId, mealController.getMealById);
+//Get specific meal
+router.get('/:id', mealController.validateId, mealController.getMealById);
 
-// //Register meal
-// router.post('/', authController.validateToken, mealController.addMeal);
+//Register meal
+router.post('/', authController.validateToken, mealController.addMeal);
 
 // //Edit specific meal
 // router.post('/:id', authController.validateToken, mealController.validateId, mealController.updateMeal);

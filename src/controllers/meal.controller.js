@@ -1,5 +1,7 @@
 const assert = require('assert');
 const pool = require('../../dbconnection');
+const jwt = require('jsonwebtoken');
+const logger = require('../config/config').logger;
 
 let controller = {
     validateMeal: (req, res, next) => {
@@ -32,9 +34,9 @@ let controller = {
         }
     },
     validateId: (req, res, next) => {
-        const userId = req.params.id;
+        const mealId = req.params.id;
         try {
-            assert(Number.isInteger(parseInt(userId)), 'ID must be a number');
+            assert(Number.isInteger(parseInt(mealId)), 'ID must be a number');
             next();
         } catch (err) {
             logger.debug(req.body);
@@ -43,28 +45,28 @@ let controller = {
                 message: err.message,
             };
 
-            logger.debug(error);
+            logger.error(error);
             next(error);
         }
     },
-    addUser: (req, res, next) => {
-        const user = req.body;
-        pool.query('INSERT INTO user SET ?', user, (dbError, result) => {
+    addMeal: (req, res, next) => {
+        const meal = req.body;
+        pool.query('INSERT INTO meal SET ?', meal, (dbError, result) => {
             if (dbError) {
                 logger.debug(dbError.message);
                 const error = {
                     status: 409,
-                    message: 'User has not been added',
-                    result: 'User is niet toegevoegd in database',
+                    message: 'Meal has not been added',
+                    result: 'Meal is niet toegevoegd in database',
                 };
                 next(error);
             } else {
                 logger.debug(result.insertId);
-                user.userId = result.insertId;
+                meal.mealId = result.insertId;
                 res.status(201).json({
                     status: 201,
-                    message: 'User is toegevoegd in database',
-                    result: { id: result.insertId, ...user },
+                    message: 'Meal is toegevoegd in database',
+                    result: { id: result.insertId, ...meal },
                 });
             }
         });
@@ -93,7 +95,7 @@ let controller = {
 
         pool.query(queryString, (error, results, fields) => {
             results.forEach((meal) => {
-                users.push(meal);
+                meals.push(meal);
             });
             res.status(200).json({
                 status: 200,
@@ -102,17 +104,18 @@ let controller = {
 
         });
     },
-    getUserById: (req, res, next) => {
-        const userId = req.params.id;
+    getMealById: (req, res, next) => {
+        const mealId = req.params.id;
         pool.query(
-            `SELECT * FROM user WHERE id =${userId}`,
+            `SELECT * FROM meal WHERE id =${mealId}`,
             (err, results, fields) => {
                 const user = results[0];
                 if (err) {
-                    const error = {
+                    const meal = {
                         status: 404,
-                        message: "User with provided Id does not exist",
+                        message: "Meal with provided Id does not exist",
                     };
+                    logger.error(meal.message);
                     next(error);
                 }
 
@@ -124,46 +127,23 @@ let controller = {
                 } else {
                     const error = {
                         status: 404,
-                        message: "User with provided Id does not exist",
+                        message: "Meal with provided Id does not exist",
                     };
+                    logger.error(error.message);
                     next(error);
                 }
             }
         );
     },
-    getUserProfile: (req, res) => {
-        const tokenString = req.headers.authorization.split(" ");
-        const token = tokenString[1];
-        const payload = jwt.decode(token);
-        const userId = payload.userId;
-
-        pool.query(
-            `SELECT id, firstName, lastName, emailAdress FROM user where id=${userId}`,
-            (err, results, fields) => {
-                if (!(results.length > 0)) {
-                    const error = {
-                        status: 404,
-                        message: "User does not exist",
-                    };
-                    next(error);
-                } else {
-                    res.status(200).json({
-                        status: 200,
-                        results: results,
-                    });
-                }
-            }
-        );
-    },
-    updateUser: (req, res, next) => {
-        const userId = req.params.id;
+    updateMeal: (req, res, next) => {
+        const mealId = req.params.id;
         const token = req.headers.authorization;
-        const userIdToken = jwt.decode(token);
+        const cookIdToken = jwt.decode(token);
 
-        if (userId === userIdToken) {
-            const user = req.body;
+        if (mealId === cookIdToken) {
+            const meal = req.body;
             pool.query(
-                `UPDATE user SET firstName = '${user.firstName}', lastName = '${user.lastName}', street = '${user.street}', city = '${user.city}', emailAdress = '${user.emailAdress}', password = '${user.password}' WHERE id = ${userId}`,
+                `UPDATE meal SET name = '${meal.name}', description = '${meal.description}', isActive = '${meal.isActive}', isVega = '${meal.isVega}', isVegan = '${meal.isVegan}', isToTakeHome = '${meal.isToTakeHome}, dateTime = '${meal.dateTime}, imageUrl = '${meal.imageUrl}, allergenes = '${meal.allergenes}, maxAmountOfParticipants = '${meal.maxAmountOfParticipants}, price = '${meal.price}' WHERE id = ${mealId}`,
                 (err, results) => {
                     const { affectedRows } = results;
                     if (err) throw err;
@@ -171,10 +151,12 @@ let controller = {
                     if (affectedRows == 0) {
                         const error = {
                             status: 404,
-                            message: "User with provided id does not exist",
+                            message: "Meal with provided Id does not exist",
                         };
+                        logger.error("Meal with provided Id does not exist");
                         next(error);
                     } else {
+                        logger.debug("Succesful update!");
                         res.status(200).json({ status: 200, result: "Succusful update!" });
                     }
                 }
@@ -182,24 +164,25 @@ let controller = {
         } else {
             const error = {
                 status: 403,
-                message: "You cannot update an account that is not yours!",
+                message: "You cannot update a meal that is not yours!",
             };
+            logger.error(error.message);
             next(error);
         };
     },
-    deleteUser: (req, res, next) => {
-        const userId = req.params.id;
+    deleteMeal: (req, res, next) => {
+        const mealId = req.params.id;
         const token = req.headers.authorization;
-        const userIdToken = jwt.decode(token);
+        const cookIdToken = jwt.decode(token);
 
-        if (userId === userIdToken) {
-            pool.query(`DELETE FROM user WHERE id=${userId}`, (err, results) => {
+        if (mealId === cookIdToken) {
+            pool.query(`DELETE FROM meal WHERE id=${mealId}`, (err, results) => {
                 if (err) throw err;
                 const { affectedRows } = results;
                 if (!affectedRows) {
                     const error = {
                         status: 400,
-                        result: "User does not exist",
+                        result: "Meal does not exist",
                     };
                     next(error);
                 } else {
@@ -209,7 +192,7 @@ let controller = {
         } else {
             const error = {
                 status: 403,
-                message: "You cannot delete an account that is not yours!",
+                message: "You cannot delete a meal that is not yours!",
             };
             next(error);
         };

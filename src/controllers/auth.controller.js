@@ -8,7 +8,6 @@ let controller = {
     login(req, res, next) {
         pool.query('SELECT `id`, `emailAdress`, `password`, `firstName`, `lastName` FROM `user` WHERE `emailAdress` = ?', [req.body.emailAdress],
             (err, rows, fields) => {
-                connection.release()
                 if (err) {
                     logger.error('Error: ', err.toString())
                     res.status(500).json({

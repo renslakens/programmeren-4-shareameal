@@ -9,7 +9,7 @@ const dbConfig = {
     queueLimit: 0,
     multipleStatements: true,
     host: process.env.DB_HOST,
-    port: 3000,
+    port: process.env.DB_PORT,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_DATABASE
@@ -24,7 +24,7 @@ pool.on('connection', function(connection) {
 });
 
 pool.on('acquire', function(connection) {
-    console.log('Connection %d acquired', connection.threadId)
+    logger.debug('Connection %d acquired', connection.threadId)
 });
 
 pool.on('release', function(connection) {

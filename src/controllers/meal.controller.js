@@ -2,25 +2,27 @@ const assert = require('assert');
 const pool = require('../../dbconnection');
 
 let controller = {
-    validateUser: (req, res, next) => {
+    validateMeal: (req, res, next) => {
         let meal = req.body;
         let { name, description, isActive, isVega, isVegan, isToTakeHome, dateTime, maxAmountOfParticipants, price, imageUrl, allergenes, cook, participants } = meal;
         try {
-            assert(typeof firstName === 'string', 'The firstname must be a string');
-            assert(typeof lastName === 'string', 'The lastName must be a string');
-            assert(typeof street === 'string', 'The street must be a string');
-            assert(typeof city === 'string', 'The city must be a string');
-            assert(typeof isActive === 'number', 'IsActive must be a number');
-            assert(typeof emailAdress === 'string', 'The emailAddress must be a string');
-            assert(typeof phoneNumber === 'string', 'The phoneNumber must be a string');
-            assert(typeof password === 'string', 'The password must a string');
-
-            const emailTest = /[a-z0-9]+@[a-z]+\.[a-z]{2,5}/;
-            assert(emailTest.test(req.body.emailAdress), "emailAdress is not valid");
+            assert(typeof name === 'string', 'The name must be a string');
+            assert(typeof description === 'string', 'The description must be a string');
+            assert(typeof isActive === 'boolean', 'isActive must be a boolean');
+            assert(typeof isVega === 'boolean', 'isVega must be a boolean');
+            assert(typeof isVegan === 'boolean', 'isVegan must be a boolean');
+            assert(typeof isToTakeHome === 'boolean', 'isToTakeHome must be a boolean');
+            assert(typeof dateTime === 'string', 'dateTime must be a string');
+            assert(typeof maxAmountOfParticipants === 'number', 'The maxAmountOfParticipants must a number');
+            assert(typeof price === 'number', 'The price must be a number');
+            assert(typeof imageUrl === 'string', 'The imageUrl must be a string');
+            assert(typeof allergenes === 'string', 'The allergenes must a string');
+            assert(typeof cook === 'string', 'The cook must be a string');
+            assert(typeof participants === 'string', 'The participants must a string');
 
             next();
         } catch (err) {
-            console.log(err.message);
+            logger.debug(err.message);
             const error = {
                 status: 400,
                 result: err.message,
@@ -35,13 +37,13 @@ let controller = {
             assert(Number.isInteger(parseInt(userId)), 'ID must be a number');
             next();
         } catch (err) {
-            console.log(req.body);
+            logger.debug(req.body);
             const error = {
                 status: 400,
                 message: err.message,
             };
 
-            console.log(error);
+            logger.debug(error);
             next(error);
         }
     },
@@ -49,7 +51,7 @@ let controller = {
         const user = req.body;
         pool.query('INSERT INTO user SET ?', user, (dbError, result) => {
             if (dbError) {
-                console.log(dbError.message);
+                logger.debug(dbError.message);
                 const error = {
                     status: 409,
                     message: 'User has not been added',
@@ -57,7 +59,7 @@ let controller = {
                 };
                 next(error);
             } else {
-                console.log(result.insertId);
+                logger.debug(result.insertId);
                 user.userId = result.insertId;
                 res.status(201).json({
                     status: 201,
@@ -67,18 +69,18 @@ let controller = {
             }
         });
     },
-    getAllUsers: (req, res) => {
+    getAllMeals: (req, res) => {
         const queryParams = req.query;
-        console.log(queryParams);
+        logger.debug(queryParams);
 
-        let { firstName, isActive } = queryParams;
-        let queryString = "SELECT * FROM user";
-        if (firstName || isActive) {
+        let { name, isActive } = queryParams;
+        let queryString = "SELECT * FROM meal";
+        if (name || isActive) {
             queryString += " WHERE ";
-            if (firstName) {
-                queryString += `firstName LIKE '${firstName}%'`;
+            if (name) {
+                queryString += `name LIKE '${name}%'`;
             }
-            if (firstName && isActive) {
+            if (name && isActive) {
                 queryString += " AND ";
             }
             if (isActive) {
@@ -86,16 +88,16 @@ let controller = {
             }
         }
         queryString += ";";
-        console.log(queryString);
-        let users = [];
+        logger.debug(queryString);
+        let meals = [];
 
         pool.query(queryString, (error, results, fields) => {
-            results.forEach((user) => {
-                users.push(user);
+            results.forEach((meal) => {
+                users.push(meal);
             });
             res.status(200).json({
                 status: 200,
-                result: users,
+                result: meals,
             });
 
         });

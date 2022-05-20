@@ -1,5 +1,5 @@
 const mysql = require('mysql2');
-const logger = require('./src/config/config/config').logger;
+const logger = require('./src/config/config').logger;
 require('dotenv').config();
 
 const dbConfig = {
@@ -9,7 +9,7 @@ const dbConfig = {
     queueLimit: 0,
     multipleStatements: true,
     host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
+    port: 3000,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_DATABASE

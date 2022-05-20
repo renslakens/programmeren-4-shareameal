@@ -2,7 +2,12 @@ const chai = require('chai');
 const chaiHttp = require('chai-http');
 const { it } = require('mocha');
 const server = require('../../index');
-let database = [];
+const database = require("../../dbconnection");
+require('dotenv').config();
+const jwt = require('jsonwebtoken');
+const assert = require('assert');
+const { jwtSecretKey, logger } = require('../../src/config')
+const index = require("../../index");
 
 chai.should();
 chai.use(chaiHttp);
@@ -10,8 +15,42 @@ chai.use(chaiHttp);
 let insertedUserId = 0;
 let insertedTestUserId = 0;
 
+let validToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjk4LCJpYXQiOjE2NTMwNDYyNzYsImV4cCI6MTY1NDA4MzA3Nn0.dFwoRpLZr8qfyHPsgv73a0dWfvU9-MYVpx7L1r8AtTE";
+const invalidToken = "evnsdkKiOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2JsdIkfjjMsImlhdCI6MTY1MzA1NDzg3NzA4LCJleHAiOjE2NTM4MjQ19.NAW7Ol_7WrEdPYH1B7-6mKFsGGpX3xPwEQBctIKlPvU";
+
+const CLEAR_DB = "DELETE  FROM `user` WHERE emailAdress = 'rens@lakens.org';"
+const GET_USER = "SELECT id FROM `user` WHERE emailAdress = 'test@avans.nl';"
+const ADD_USER = "INSERT INTO `user`" +
+    "(`firstName`, `lastName`, `street`, `city`, `password`, `emailAdress`, `phoneNumber`,`roles` )" +
+    "VALUES ('Thijmen', 'Vuur', 'Lovensdijkstraat', 'Breda', 'U3lsdkfj!', 'test@avans.nl', '0612345678', 'editor');"
+
 describe('UC-User', () => {
     describe('UC-201 Register as new user', () => {
+        beforeEach((done) => {
+            logger.debug("beforeEach called");
+            // maak de testdatabase leeg zodat we onze testen kunnen uitvoeren.
+
+            //AANPASSEN NAAR POOL
+            database.getConnection(function(err, connection) {
+                if (err) throw err
+
+                // Use the connection
+                connection.query(
+                    CLEAR_DB,
+                    function(error, results, fields) {
+                        // When done with the connection, release it.
+                        connection.release();
+
+                        // Handle error after the release.
+                        if (err) throw err
+                            // Let op dat je done() pas aanroept als de query callback eindigt!
+                        logger.debug("beforeEach done");
+                        done();
+                    }
+                );
+            });
+        });
+
         it('TC-201-1 When a required input is missing, a valid error should be returned', (done) => {
             chai
                 .request(server)

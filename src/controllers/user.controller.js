@@ -15,8 +15,8 @@ let controller = {
             assert(typeof phoneNumber === 'string', 'The phoneNumber must be a string');
             assert(typeof password === 'string', 'The password must a string');
 
-            const emailTest = /[a-z0-9]+@[a-z]+\.[a-z]{2,5}/;
-            assert(emailTest.test(req.body.emailAdress), "emailAdress is not valid");
+            assert(emailAdress.match(/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/), "emailAdress is invalid");
+            assert(password.match(/^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{6,16}$/), "password is invalid");
 
             next();
         } catch (err) {

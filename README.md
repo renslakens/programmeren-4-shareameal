@@ -3,7 +3,7 @@
 ## Description
 A REST API server made for a school project for Avans Hogeschool.
 
-With this API you can add, edit and delete users and meals and you can register and login to your account.
+With this API you can add, edit and delete users and meals, register and login to your account and you can participate in a meal.
 
 The goal of this API is to share your meal you submitted so you waste less food and meet new people.
 
@@ -12,11 +12,11 @@ API is currently running on a heroku server: [shareamealrensl.herokuapp.com/api]
 
 If you want to install this server yourself, simply run this command:
 
-``git clone https://github.com/renslakens/programmeren-4-shareameal.git``
+```git clone https://github.com/renslakens/programmeren-4-shareameal.git```
 
 Furhter you need to install these libraries with [NPM](https://www.npmjs.com/):
 
-``npm i dotenv express jsonwebtoken mysql2 tracer``
+```npm i dotenv express jsonwebtoken mysql2 tracer```
 
 - The library [dotenv](https://www.npmjs.com/package/dotenv) is used for environment variables
 - [Express](https://www.npmjs.com/package/express) is used for running the server

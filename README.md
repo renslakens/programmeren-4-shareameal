@@ -27,6 +27,8 @@ Furhter you need to install these libraries with [NPM](https://www.npmjs.com/):
 ## Usage
 The current usage is documented at [this](https://shareameal-api.herokuapp.com/docs/) page.
 
+[![docs](https://postimg.cc/62XkFGJ2, "Swagger documentation")](https://shareameal-api.herokuapp.com/docs/)
+
 ## Support
 If you run in to any problems regarding tho this project or another project of mine feel free to contact me at r.lakens@student.avans.nl.
 

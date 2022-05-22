@@ -1,5 +1,8 @@
 const assert = require('assert');
 const pool = require('../../dbconnection');
+const logger = require('../config/config').logger;
+const jwt = require('jsonwebtoken');
+const jwtSecretKey = require('../config/config').jwtSecretKey
 
 let controller = {
     validateUser: (req, res, next) => {
@@ -12,18 +15,27 @@ let controller = {
             assert(typeof city === 'string', 'The city must be a string');
             assert(typeof isActive === 'number', 'IsActive must be a number');
             assert(typeof emailAdress === 'string', 'The emailAddress must be a string');
-            assert(typeof phoneNumber === 'string', 'The phoneNumber must be a string');
             assert(typeof password === 'string', 'The password must a string');
 
-            assert(emailAdress.match(/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/), "emailAdress is invalid");
-            assert(password.match(/^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{6,16}$/), "password is invalid");
+            assert(emailAdress.match(/^(([^<>()\[\]\\.,;:\s@']+(\.[^<>()\[\]\\.,;:\s@']+)*)|('.+'))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/), 'emailAdress is invalid');
+            //8 karakters, 1 letter, 1 nummer en 1 speciaal teken
+            assert(password.match(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/), 'password is invalid');
+
+            if (phoneNumber != undefined) {
+                assert(typeof phoneNumber === 'string', 'The phoneNumber must be a string');
+                assert(
+                    phoneNumber.match(
+                        /(06)(\s|\-|)\d{8}|31(\s6|\-6|6)\d{8}/
+                    ),
+                    'invalid phoneNumber'
+                )
+            }
 
             next();
         } catch (err) {
-            console.log(err.message);
+            logger.debug(err.message);
             const error = {
                 status: 400,
-                result: err.message,
                 message: err.message,
             };
             next(error);
@@ -35,13 +47,13 @@ let controller = {
             assert(Number.isInteger(parseInt(userId)), 'ID must be a number');
             next();
         } catch (err) {
-            console.log(req.body);
+            logger.debug(req.body);
             const error = {
                 status: 400,
                 message: err.message,
             };
 
-            console.log(error);
+            logger.debug(error);
             next(error);
         }
     },
@@ -49,7 +61,7 @@ let controller = {
         const user = req.body;
         pool.query('INSERT INTO user SET ?', user, (dbError, result) => {
             if (dbError) {
-                console.log(dbError.message);
+                logger.debug(dbError.message);
                 const error = {
                     status: 409,
                     message: 'User has not been added',
@@ -57,7 +69,7 @@ let controller = {
                 };
                 next(error);
             } else {
-                console.log(result.insertId);
+                logger.debug('InsertId is: ', result.insertId);
                 user.userId = result.insertId;
                 res.status(201).json({
                     status: 201,
@@ -69,24 +81,24 @@ let controller = {
     },
     getAllUsers: (req, res) => {
         const queryParams = req.query;
-        console.log(queryParams);
+        logger.debug(queryParams);
 
         let { firstName, isActive } = queryParams;
-        let queryString = "SELECT * FROM user";
+        let queryString = 'SELECT * FROM user';
         if (firstName || isActive) {
-            queryString += " WHERE ";
+            queryString += ' WHERE ';
             if (firstName) {
                 queryString += `firstName LIKE '${firstName}%'`;
             }
             if (firstName && isActive) {
-                queryString += " AND ";
+                queryString += ' AND ';
             }
             if (isActive) {
                 queryString += `isActive = ${isActive}`;
             }
         }
-        queryString += ";";
-        console.log(queryString);
+        queryString += ';';
+        logger.debug(queryString);
         let users = [];
 
         pool.query(queryString, (error, results, fields) => {
@@ -108,8 +120,8 @@ let controller = {
                 const user = results[0];
                 if (err) {
                     const error = {
-                        status: 404,
-                        message: "User with provided Id does not exist",
+                        status: 400,
+                        message: 'User with provided Id does not exist',
                     };
                     next(error);
                 }
@@ -122,7 +134,7 @@ let controller = {
                 } else {
                     const error = {
                         status: 404,
-                        message: "User with provided Id does not exist",
+                        message: 'User with provided Id does not exist',
                     };
                     next(error);
                 }
@@ -130,28 +142,34 @@ let controller = {
         );
     },
     getUserProfile: (req, res) => {
-        const tokenString = req.headers.authorization.split(" ");
-        const token = tokenString[1];
-        const payload = jwt.decode(token);
-        const userId = payload.userId;
-
-        pool.query(
-            `SELECT id, firstName, lastName, emailAdress FROM user where id=${userId}`,
-            (err, results, fields) => {
-                if (!(results.length > 0)) {
-                    const error = {
-                        status: 404,
-                        message: "User does not exist",
-                    };
-                    next(error);
-                } else {
-                    res.status(200).json({
-                        status: 200,
-                        results: results,
-                    });
-                }
+        if (req.headers && req.headers.authorization) {
+            var authorization = req.headers.authorization.split(' ')[1],
+                decoded;
+            try {
+                decoded = jwt.verify(authorization, jwtSecretKey);
+            } catch (e) {
+                return;
             }
-        );
+            var userId = decoded.userId;
+            pool.query(
+                `SELECT * FROM user WHERE id = ${userId};`,
+                function(error, results, fields) {
+                    if (results.length == 0) {
+                        res.status(404).json({
+                            status: 404,
+                            message: 'User does not exist'
+                        });
+                        logger.error(error);
+                    } else {
+                        res.status(200).json({
+                            status: 200,
+                            result: results,
+                        });
+                        logger.debug(results);
+                    }
+                }
+            );
+        }
     },
     updateUser: (req, res, next) => {
         const userId = req.params.id;
@@ -169,18 +187,18 @@ let controller = {
                     if (affectedRows == 0) {
                         const error = {
                             status: 404,
-                            message: "User with provided id does not exist",
+                            message: 'User with this provided id does not exist',
                         };
                         next(error);
                     } else {
-                        res.status(200).json({ status: 200, result: "Succusful update!" });
+                        res.status(200).json({ status: 200, result: 'Succesful update!' });
                     }
                 }
             );
         } else {
             const error = {
                 status: 403,
-                message: "You cannot update an account that is not yours!",
+                message: 'You cannot update an account that is not yours!',
             };
             next(error);
         };
@@ -197,17 +215,17 @@ let controller = {
                 if (!affectedRows) {
                     const error = {
                         status: 400,
-                        result: "User does not exist",
+                        result: 'User does not exist',
                     };
                     next(error);
                 } else {
-                    res.status(200).json({ status: 200, result: "Succesful deletion" });
+                    res.status(200).json({ status: 200, result: 'Succesful deletion' });
                 }
             });
         } else {
             const error = {
                 status: 403,
-                message: "You cannot delete an account that is not yours!",
+                message: 'You cannot delete an account that is not yours!',
             };
             next(error);
         };

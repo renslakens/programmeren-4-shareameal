@@ -47,11 +47,8 @@ app.all('*', (req, res) => {
 
 //Error handler
 app.use((err, req, res, next) => {
-    logger.debug('Error handler called.');
-    res.status(500).json({
-        statusCode: 500,
-        message: err.toString(),
-    });
+    logger.error(err);
+    res.status(err.status).json(err);
 });
 
 //Welcome message

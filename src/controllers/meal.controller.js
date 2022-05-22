@@ -6,7 +6,7 @@ const logger = require('../config/config').logger;
 let controller = {
     validateMeal: (req, res, next) => {
         let meal = req.body;
-        let { name, description, isActive, isVega, isVegan, isToTakeHome, dateTime, maxAmountOfParticipants, price, imageUrl, allergenes, cook, participants } = meal;
+        let { name, description, isActive, isVega, isVegan, isToTakeHome, dateTime, maxAmountOfParticipants, price, imageUrl, allergenes } = meal;
         try {
             assert(typeof name === 'string', 'The name must be a string');
             assert(typeof description === 'string', 'The description must be a string');
@@ -18,16 +18,13 @@ let controller = {
             assert(typeof maxAmountOfParticipants === 'number', 'The maxAmountOfParticipants must a number');
             assert(typeof price === 'number', 'The price must be a number');
             assert(typeof imageUrl === 'string', 'The imageUrl must be a string');
-            assert(typeof allergenes === 'string', 'The allergenes must a string');
-            assert(typeof cook === 'string', 'The cook must be a string');
-            assert(typeof participants === 'string', 'The participants must a string');
+            assert(Array.isArray(allergenes), 'allergenes must an array');
 
             next();
         } catch (err) {
             logger.debug(err.message);
             const error = {
                 status: 400,
-                result: err.message,
                 message: err.message,
             };
             next(error);
@@ -50,25 +47,24 @@ let controller = {
         }
     },
     addMeal: (req, res, next) => {
-        const meal = req.body;
-        pool.query('INSERT INTO meal SET ?', meal, (dbError, result) => {
-            if (dbError) {
-                logger.debug(dbError.message);
-                const error = {
-                    status: 409,
-                    message: 'Meal has not been added',
-                    result: 'Meal is niet toegevoegd in database',
-                };
-                next(error);
-            } else {
-                logger.debug(result.insertId);
-                meal.mealId = result.insertId;
-                res.status(201).json({
-                    status: 201,
-                    message: 'Meal is toegevoegd in database',
-                    result: { id: result.insertId, ...meal },
-                });
-            }
+        let meal = req.body;
+        meal.allergenes = meal.allergenes.join(",");
+        pool.getConnection(function(connError, conn) {
+            pool.query(`INSERT INTO meal SET ?`, meal, function(dbError, result, fields) {
+                if (dbError) {
+                    console.log(dbError);
+                } else {
+                    const resultMeal = {
+                        id: result.insertId,
+                        ...meal
+                    }
+                    res.status(201).json({
+                        status: 201,
+                        result: resultMeal
+                    });
+                    console.log(resultMeal);
+                }
+            });
         });
     },
     getAllMeals: (req, res) => {
@@ -181,7 +177,7 @@ let controller = {
                 const { affectedRows } = results;
                 if (!affectedRows) {
                     const error = {
-                        status: 400,
+                        status: 404,
                         result: "Meal does not exist",
                     };
                     next(error);

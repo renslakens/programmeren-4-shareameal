@@ -39,6 +39,75 @@ const INSERT_USER_2 =
 //     "VALUES ('Thijmen', 'Vuur', 'Lovensdijkstraat', 'Breda', 'U3lsdkfj!', 'test@avans.nl', '0612345678', 'editor');"
 
 describe('UC-User', () => {
+    describe('UC-101 login', () => {
+        afterEach((done) => {
+            logger.debug('afterEach called');
+            // Maak testdatabase leeg zodat we testen kunnen uitvoeren
+            pool.query(CLEAR_USERS_TABLE, function(err) {
+                if (err) throw err
+                logger.debug('afterEach done');
+                done();
+            });
+        });
+        it('TC 101-1 When a required input is missing, a valid error should be returned', (done) => {
+            chai.request(server).post('/auth/login').send({
+                    password: "Geh3imWachtwoord!"
+                })
+                .end((err, res) => {
+                    assert.ifError(err);
+                    res.should.be.an('object');
+                    let { status, message } = res.body;
+                    status.should.equals(400);
+                    message.should.be.a('string').that.equals('The emailAddress must be a string');
+                    done();
+                });
+        });
+        it('TC 101-2 When the email address does not match the regex, a valid error should be returned', (done) => {
+            chai.request(server).post('/auth/login').send({
+                    emailAdress: "jdoe@server",
+                    password: "Geh3imWachtwoord!"
+                })
+                .end((err, res) => {
+                    assert.ifError(err);
+                    res.should.be.an('object');
+                    let { status, message } = res.body;
+                    status.should.equals(400);
+                    message.should.be.a('string').that.equals('emailAdress is invalid');
+
+                    done();
+                });
+        });
+        it('TC 101-3 When the user does not exist, a valid error should be returned', (done) => {
+            chai.request(server).post('/auth/login').send({
+                    emailAdress: "Geh3imWachtwoord!",
+                    password: "password"
+                })
+                .end((err, res) => {
+                    assert.ifError(err);
+                    res.should.be.an('object');
+                    let { status, message } = res.body;
+                    status.should.equals(404);
+                    message.should.be.a('string').that.equals('User not found or password invalid');
+                    done();
+                });
+        });
+        it('TC 101-4 User successfully logged in', (done) => {
+            dbconnection.query(INSERT_USER_1, () => {
+                chai.request(server).post('/auth/login').send({
+                        emailAdress: "d.ambesi@avans.nl",
+                        password: "secret"
+                    })
+                    .end((err, res) => {
+                        assert.ifError(err);
+                        res.should.be.an('object');
+                        let { status, result } = res.body;
+                        status.should.equals(200);
+                        done();
+                    });
+            });
+        });
+    });
+
     describe('UC-201 Register as new user', () => {
         afterEach((done) => {
             logger.debug('afterEach called');

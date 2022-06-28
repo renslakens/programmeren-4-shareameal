@@ -1,6 +1,8 @@
 const assert = require('assert');
 const pool = require('../../dbconnection');
 const logger = require('../config/config').logger;
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
 const jwt = require('jsonwebtoken');
 const jwtSecretKey = require('../config/config').jwtSecretKey
 
@@ -57,59 +59,75 @@ let controller = {
             next(error);
         }
     },
-    addUser: (req, res, next) => {
-        const user = req.body;
-        pool.query('INSERT INTO user SET ?', user, (dbError, result) => {
+    addUser: (req, res) => {
+        let user = req.body;
+
+        //Hash the password
+        user.password = bcrypt.hashSync(user.password, saltRounds);
+
+        //Insert the user object into the database
+        pool.query(`INSERT INTO user SET ?`, user, function(dbError, result, fields) {
+            // Handle error after the release.
             if (dbError) {
-                logger.debug(dbError.message);
-                const error = {
-                    status: 409,
-                    message: 'User has not been added',
-                    result: 'User is niet toegevoegd in database',
-                };
-                next(error);
+                logger.debug(dbError);
+                if (dbError.errno == 1062) {
+                    res.status(409).json({
+                        status: 409,
+                        message: "Email is already used"
+                    });
+                } else {
+                    logger.error(dbError);
+                    res.status(500).json({
+                        status: 500,
+                        result: "Error"
+                    });
+                }
             } else {
-                logger.debug('InsertId is: ', result.insertId);
-                user.userId = result.insertId;
                 res.status(201).json({
                     status: 201,
-                    message: 'User is toegevoegd in database',
-                    result: { id: result.insertId, ...user },
+                    result: {
+                        id: result.insertId,
+                        ...user
+                    }
                 });
             }
         });
     },
     getAllUsers: (req, res) => {
-        const queryParams = req.query;
-        logger.debug(queryParams);
+        let { id, firstName, lastName, street, city, isActive, emailAdress, phoneNumber } = req.query;
 
-        let { firstName, isActive } = queryParams;
-        let queryString = 'SELECT * FROM user';
-        if (firstName || isActive) {
-            queryString += ' WHERE ';
-            if (firstName) {
-                queryString += `firstName LIKE '${firstName}%'`;
-            }
-            if (firstName && isActive) {
-                queryString += ' AND ';
-            }
-            if (isActive) {
-                queryString += `isActive = ${isActive}`;
-            }
-        }
-        queryString += ';';
-        logger.debug(queryString);
-        let users = [];
+        if (!id) { id = '%' }
+        if (!firstName) { firstName = '%' }
+        if (!lastName) { lastName = '%' }
+        if (!street) { street = '%' }
+        if (!city) { city = '%' }
+        if (!isActive) { isActive = '%' }
+        if (!emailAdress) { emailAdress = '%' }
+        if (!phoneNumber) { phoneNumber = '%' }
 
-        pool.query(queryString, (error, results, fields) => {
-            results.forEach((user) => {
-                users.push(user);
-            });
+        pool.query(`SELECT id, firstName, lastName, isActive, emailAdress, phoneNumber, roles, street, city 
+            FROM user WHERE id LIKE ? AND firstName LIKE ? AND lastName LIKE ? AND street LIKE ? AND city LIKE ? AND isActive LIKE ? AND emailAdress LIKE ? AND phoneNumber LIKE ?`, [id, '%' + firstName + '%', '%' + lastName + '%', '%' + street + '%', '%' + city + '%', isActive, '%' + emailAdress + '%', '%' + phoneNumber + '%'], function(dbError, results, fields) {
+            if (dbError) {
+                if (dbError.errno === 1064) {
+                    res.status(400).json({
+                        status: 400,
+                        message: "Something went wrong with the filter URL"
+                    });
+                    return;
+                } else {
+                    logger.error(dbError);
+                    res.status(500).json({
+                        status: 500,
+                        result: "Error"
+                    });
+                    return;
+                }
+            }
+
             res.status(200).json({
                 status: 200,
-                result: users,
+                result: results
             });
-
         });
     },
     getUserById: (req, res, next) => {
@@ -142,93 +160,101 @@ let controller = {
         );
     },
     getUserProfile: (req, res) => {
-        if (req.headers && req.headers.authorization) {
-            var authorization = req.headers.authorization.split(' ')[1],
-                decoded;
-            try {
-                decoded = jwt.verify(authorization, jwtSecretKey);
-            } catch (e) {
+        const userId = req.userId;
+
+        pool.query('SELECT * FROM user WHERE id = ' + userId, function(dbError, results, fields) {
+            if (dbError) {
+                logger.error(dbError);
+                res.status(500).json({
+                    status: 500,
+                    result: "Error"
+                });
                 return;
             }
-            var userId = decoded.userId;
-            pool.query(
-                `SELECT * FROM user WHERE id = ${userId};`,
-                function(error, results, fields) {
-                    if (results.length == 0) {
-                        res.status(404).json({
-                            status: 404,
-                            message: 'User does not exist'
-                        });
-                        logger.error(error);
-                    } else {
-                        res.status(200).json({
-                            status: 200,
-                            result: results,
-                        });
-                        logger.debug(results);
-                    }
-                }
-            );
-        }
+
+            const result = results[0];
+            if (result) {
+                res.status(200).json({
+                    status: 200,
+                    result: result
+                });
+            } else {
+                res.status(404).json({
+                    status: 404,
+                    message: "User does not exist"
+                });
+            }
+        });
     },
-    updateUser: (req, res, next) => {
+    updateUser: (req, res) => {
+        const newUserInfo = req.body;
         const userId = req.params.id;
-        const token = req.headers.authorization;
-        const userIdToken = jwt.decode(token);
 
-        if (userId === userIdToken) {
-            const user = req.body;
-            pool.query(
-                `UPDATE user SET firstName = '${user.firstName}', lastName = '${user.lastName}', street = '${user.street}', city = '${user.city}', emailAdress = '${user.emailAdress}', password = '${user.password}' WHERE id = ${userId}`,
-                (err, results) => {
-                    const { affectedRows } = results;
-                    if (err) throw err;
+        //Hash the password
+        newUserInfo.password = bcrypt.hashSync(newUserInfo.password, saltRounds);
 
-                    if (affectedRows == 0) {
-                        const error = {
-                            status: 404,
-                            message: 'User with this provided id does not exist',
-                        };
-                        next(error);
-                    } else {
-                        res.status(200).json({ status: 200, result: 'Succesful update!' });
+        pool.query('UPDATE user SET ? WHERE id = ?', [newUserInfo, userId], function(dbError, results, fields) {
+            if (results.affectedRows > 0) {
+                res.status(200).json({
+                    status: 200,
+                    message: `${userId} successfully updated`,
+                    result: {
+                        id: userId,
+                        ...newUserInfo
                     }
-                }
-            );
-        } else {
-            const error = {
-                status: 403,
-                message: 'You cannot update an account that is not yours!',
-            };
-            next(error);
-        };
-    },
-    deleteUser: (req, res, next) => {
-        const userId = req.params.id;
-        const token = req.headers.authorization;
-        const userIdToken = jwt.decode(token);
-
-        if (userId === userIdToken) {
-            pool.query(`DELETE FROM user WHERE id=${userId}`, (err, results) => {
-                if (err) throw err;
-                const { affectedRows } = results;
-                if (!affectedRows) {
-                    const error = {
+                });
+            } else {
+                if (dbError == null) {
+                    res.status(400).json({
                         status: 400,
-                        result: 'User does not exist',
-                    };
-                    next(error);
+                        result: "User does not exist"
+                    });
                 } else {
-                    res.status(200).json({ status: 200, result: 'Succesful deletion' });
+                    logger.error(dbError);
+                    res.status(500).json({
+                        status: 500,
+                        result: "Error"
+                    });
                 }
-            });
-        } else {
-            const error = {
+            }
+        });
+    },
+    deleteUser: (req, res) => {
+        const userId = req.params.id;
+        const tokenUserId = req.userId;
+
+        logger.debug("UserId =", userId);
+        logger.debug("TokenUserId =", tokenUserId);
+        if (userId != tokenUserId) {
+            res.status(403).json({
                 status: 403,
-                message: 'You cannot delete an account that is not yours!',
-            };
-            next(error);
-        };
+                message: 'Not authorized',
+            });
+            return;
+        }
+
+        pool.query('DELETE FROM user WHERE id = ?', userId, function(dbError, results, fields) {
+            if (dbError) {
+                logger.error(dbError);
+                res.status(500).json({
+                    status: 500,
+                    result: "Error"
+                });
+                return;
+            }
+
+            if (results.affectedRows > 0) {
+                res.status(200).json({
+                    status: 200,
+                    message: `User: ${userId} successfully deleted`
+                });
+            } else {
+                res.status(400).json({
+                    status: 400,
+                    message: "User does not exist"
+                });
+            }
+        });
     },
 };
 

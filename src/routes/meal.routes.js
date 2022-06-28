@@ -10,13 +10,13 @@ router.get('/', mealController.getAllMeals);
 router.get('/:id', mealController.validateId, mealController.getMealById);
 
 //Register meal
-router.post('/', authController.validateToken, mealController.addMeal);
+router.post('/', authController.validateToken, mealController.validateMeal, mealController.addMeal);
 
-// //Edit specific meal
-// router.post('/:id', authController.validateToken, mealController.validateId, mealController.updateMeal);
+//Edit specific meal
+router.post('/:id', authController.validateToken, mealController.validateId, mealController.updateMeal);
 
-// //Delete specific meal
-// router.delete('/:id', authController.validateToken, mealController.validateId, mealController.deleteMeal);
+//Delete specific meal
+router.delete('/:id', authController.validateToken, mealController.validateId, mealController.deleteMeal);
 
 // Voor extra punten
 // //Register user to meal

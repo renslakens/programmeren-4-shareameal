@@ -59,6 +59,37 @@ let controller = {
             next(error);
         }
     },
+    checkUniqueEmail: (req, res, next) => {
+        logger.info('checkUniqueEmail called')
+        if (req.body.emailAdress != undefined) {
+            pool.query(
+                'SELECT * FROM user WHERE emailAdress=?;', [req.body.emailAdress],
+                (error, results, fields) => {
+                    if (error) {
+                        logger.error(error.sqlMessage)
+                        return next({
+                            status: 500,
+                            message: error.sqlMessage,
+                        })
+                    } else {
+                        logger.debug(results[0])
+                        var user = Object.assign({}, results[0])
+                        if (results.length > 0 && user.id != req.params.id) {
+                            logger.warn('Email already in use')
+                            return next({
+                                status: 409,
+                                message: `The email address ${req.body.emailAdress} is already in use, please use a different emailaddress.`,
+                            })
+                        } else {
+                            return next()
+                        }
+                    }
+                }
+            )
+        } else {
+            return next()
+        }
+    },
     addUser: (req, res) => {
         let user = req.body;
 
@@ -105,7 +136,7 @@ let controller = {
         if (!emailAdress) { emailAdress = '%' }
         if (!phoneNumber) { phoneNumber = '%' }
 
-        pool.query(`SELECT id, firstName, lastName, isActive, emailAdress, phoneNumber, roles, street, city 
+        pool.query(`SELECT id, firstName, lastName, isActive, emailAdress, password, phoneNumber, roles, street, city 
             FROM user WHERE id LIKE ? AND firstName LIKE ? AND lastName LIKE ? AND street LIKE ? AND city LIKE ? AND isActive LIKE ? AND emailAdress LIKE ? AND phoneNumber LIKE ?`, [id, '%' + firstName + '%', '%' + lastName + '%', '%' + street + '%', '%' + city + '%', isActive, '%' + emailAdress + '%', '%' + phoneNumber + '%'], function(dbError, results, fields) {
             if (dbError) {
                 if (dbError.errno === 1064) {
@@ -219,42 +250,45 @@ let controller = {
             }
         });
     },
-    deleteUser: (req, res) => {
-        const userId = req.params.id;
-        const tokenUserId = req.userId;
-
-        logger.debug("UserId =", userId);
-        logger.debug("TokenUserId =", tokenUserId);
-        if (userId != tokenUserId) {
-            res.status(403).json({
-                status: 403,
-                message: 'Not authorized',
-            });
-            return;
-        }
-
-        pool.query('DELETE FROM user WHERE id = ?', userId, function(dbError, results, fields) {
-            if (dbError) {
-                logger.error(dbError);
-                res.status(500).json({
-                    status: 500,
-                    result: "Error"
-                });
+    deleteUser: (req, res, next) => {
+        if (req.headers && req.headers.authorization) {
+            var authorization = req.headers.authorization.split(' ')[1],
+                decoded;
+            try {
+                decoded = jwt.verify(authorization, jwtSecretKey);
+            } catch (e) {
                 return;
             }
+            const userId = decoded.userId;
+            const id = req.params.id;
 
-            if (results.affectedRows > 0) {
-                res.status(200).json({
-                    status: 200,
-                    message: `User: ${userId} successfully deleted`
-                });
+            if (userId == id) {
+                pool.query(
+                    "DELETE FROM user WHERE id = ?",
+                    id,
+                    function(dbError, results, fields) {
+                        if (results.affectedRows > 0) {
+                            res.status(200).json({
+                                status: 200,
+                                message: "User is successfully deleted",
+                            });
+                        } else {
+                            const err = {
+                                status: 400,
+                                message: "User does not exist"
+                            }
+                            next(err);
+                        }
+                    }
+                );
             } else {
-                res.status(400).json({
-                    status: 400,
-                    message: "User does not exist"
-                });
+                const err = {
+                    status: 403,
+                    message: "You are not authorized to delete this user"
+                }
+                next(err);
             }
-        });
+        }
     },
 };
 

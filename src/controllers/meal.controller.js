@@ -51,6 +51,7 @@ let controller = {
         const cookId = req.userId
         meal.cookId = cookId;
 
+        //Insert the user object into the database
         pool.query(`INSERT INTO meal SET ?`, meal, function(dbError, result, fields) {
             if (dbError) {
                 logger.error(dbError);
@@ -89,7 +90,6 @@ let controller = {
     },
     getMealById: (req, res) => {
         const mealId = req.params.id;
-
         pool.query('SELECT * FROM meal WHERE id = ' + mealId, function(dbError, results, fields) {
             if (dbError) {
                 logger.error(dbError);
@@ -118,7 +118,6 @@ let controller = {
         const mealInfo = req.body;
         const mealId = req.params.id;
         const tokenCookId = req.userId;
-
         logger.debug("MealId =", mealId);
         logger.debug("TokenUserId =", tokenCookId);
 
@@ -136,8 +135,6 @@ let controller = {
                 logger.debug("Results:", selectResults);
                 if (selectResults[0].cookId == tokenCookId) {
                     pool.query('UPDATE meal SET ? WHERE id = ? AND cookId = ?', [mealInfo, mealId, tokenCookId], function(dbUpdateError, updateResults, updateFields) {
-
-                        // Handle error after the release.
                         if (dbUpdateError) {
                             logger.error(dbUpdateError);
                             res.status(500).json({
@@ -173,7 +170,6 @@ let controller = {
     deleteMeal: (req, res) => {
         const mealId = req.params.id;
         const tokenCookId = req.userId;
-
         logger.debug("MealId =", mealId);
         logger.debug("TokenUserId =", tokenCookId);
 
@@ -190,11 +186,7 @@ let controller = {
             if (selectResults.length > 0) {
                 logger.debug("Results:", selectResults);
                 if (selectResults[0].cookId == tokenCookId) {
-                    conn.query('DELETE FROM meal WHERE id = ? AND cookId = ?', [mealId, tokenCookId], function(dbDeleteError, deleteResults, deleteFields) {
-                        // When done with the connection, release it.
-                        conn.release();
-
-                        // Handle error after the release.
+                    pool.query('DELETE FROM meal WHERE id = ? AND cookId = ?', [mealId, tokenCookId], function(dbDeleteError, deleteResults, deleteFields) {
                         if (dbDeleteError) {
                             logger.error(dbDeleteError);
                             res.status(500).json({

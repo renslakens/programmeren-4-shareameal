@@ -4,20 +4,15 @@ const { it, afterEach } = require('mocha');
 const server = require('../../index');
 const pool = require('../../dbconnection');
 require('dotenv').config();
-const jwt = require('jsonwebtoken');
 const assert = require('assert');
+const jwt = require('jsonwebtoken');
 const { jwtSecretKey, logger } = require('../../src/config/config');
-const index = require('../../index');
+
+const testToken = process.env.JWT_TEST_TOKEN;
+// let testToken = 0;
 
 chai.should();
 chai.use(chaiHttp);
-
-// let insertedUserId = 0;
-// let insertedTestUserId = 0;
-
-//const validToken = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjE2MywiaWF0IjoxNjUzMjQ4NjM5LCJleHAiOjE2NTQyODU0Mzl9.B5JOCbLpSKi6AT9_ds6RP2XP4oHP3hpCUipegfrkeIE';
-const validToken = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjE3NSwiaWF0IjoxNjUzMjUxMjQ4LCJleHAiOjE2NTQyODgwNDh9.NDCU19kiEPQDqizEUUf6-MgPPLOa35t0X1mGJj13bSY';
-//const invalidToken = 'evnsdkKiOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2JsdIkfjjMsImlhdCI6MTY1MzA1NDzg3NzA4LCJleHAiOjE2NTM4MjQ19.NAW7Ol_7WrEdPYH1B7-6mKFsGGpX3xPwEQBctIKlPvU';
 
 const CLEAR_MEAL_TABLE = 'DELETE IGNORE FROM `meal`;';
 const CLEAR_PARTICIPANTS_TABLE = 'DELETE IGNORE FROM `meal_participants_user`;';
@@ -26,11 +21,17 @@ const CLEAR_DB = CLEAR_MEAL_TABLE + CLEAR_PARTICIPANTS_TABLE + CLEAR_USERS_TABLE
 
 const INSERT_USER_1 =
     'INSERT INTO `user` (`id`, `firstName`, `lastName`, `emailAdress`, `password`, `street`, `city` ) VALUES' +
-    '(4, "first", "last", "d.ambesi@avans.nl", "secret", "street", "city");';
+    '(1, "first", "last", "d.ambesi@avans.nl", "Geheimwachtwoord11!", "street", "city");';
 
 const INSERT_USER_2 =
     'INSERT INTO `user` (`id`, `firstName`, `lastName`, `emailAdress`, `password`, `street`, `city` ) VALUES' +
-    '(5, "test", "test", "test@avans.nl", "test", "test", "test");';
+    '(2, "test", "test", "test@avans.nl", "Geheimwachtwoord11!", "test", "test");';
+
+const INSERT_USER_3 =
+    'INSERT INTO `user` (`id`, `firstName`, `lastName`, `emailAdress`, `password`, `street`, `city` ) VALUES' +
+    '(3, "Rens", "Lakens", "asdf@lakens.org", "Geheimwachtwoord11!", "test", "test");';
+
+const INSERT_USERS = INSERT_USER_1 + INSERT_USER_2 + INSERT_USER_3;
 
 // const CLEAR_DB = "DELETE  FROM `user` WHERE emailAdress = 'rens@lakens.org';"
 // const GET_USER = "SELECT id FROM `user` WHERE emailAdress = 'test@avans.nl';"
@@ -39,6 +40,10 @@ const INSERT_USER_2 =
 //     "VALUES ('Thijmen', 'Vuur', 'Lovensdijkstraat', 'Breda', 'U3lsdkfj!', 'test@avans.nl', '0612345678', 'editor');"
 
 describe('UC-User', () => {
+    // before((done) => {
+    //     testToken = jwt.sign({ id: 1 }, jwtSecretKey);
+    //     done();
+    // });
     describe('UC-101 login', () => {
         afterEach((done) => {
             logger.debug('afterEach called');
@@ -49,59 +54,105 @@ describe('UC-User', () => {
                 done();
             });
         });
-        it('TC 101-1 When a required input is missing, a valid error should be returned', (done) => {
-            chai.request(server).post('/auth/login').send({
-                    password: "Geh3imWachtwoord!"
+        it('TC-101-1 When a required input is missing, a valid error should be returned', (done) => {
+            chai.request(server).post('/api/auth/login').auth(testToken, { type: 'bearer' }).send({
+                    emailAdress: "j.doe@server.com",
+                    //Password is missing
                 })
                 .end((err, res) => {
                     assert.ifError(err);
+
+                    res.should.have.status(400);
                     res.should.be.an('object');
+                    res.body.should.be.an('object').that.has.all.keys('status', 'message');
+
                     let { status, message } = res.body;
-                    status.should.equals(400);
-                    message.should.be.a('string').that.equals('The emailAddress must be a string');
-                    done();
-                });
-        });
-        it('TC 101-2 When the email address does not match the regex, a valid error should be returned', (done) => {
-            chai.request(server).post('/auth/login').send({
-                    emailAdress: "jdoe@server",
-                    password: "Geh3imWachtwoord!"
-                })
-                .end((err, res) => {
-                    assert.ifError(err);
-                    res.should.be.an('object');
-                    let { status, message } = res.body;
-                    status.should.equals(400);
-                    message.should.be.a('string').that.equals('emailAdress is invalid');
+                    status.should.be.a('number');
+                    message.should.be.a('string').that.equals('Password must be a string');
 
                     done();
                 });
         });
-        it('TC 101-3 When the user does not exist, a valid error should be returned', (done) => {
-            chai.request(server).post('/auth/login').send({
-                    emailAdress: "Geh3imWachtwoord!",
-                    password: "password"
+
+        it('TC-101-2 When a non-valid email is used, a valid error should be returned', (done) => {
+            chai.request(server).post('/api/auth/login').auth(testToken, { type: 'bearer' }).send({
+                    //Email is not a string
+                    emailAdress: 9,
+                    password: "Geheimwachtwoord11!"
                 })
                 .end((err, res) => {
                     assert.ifError(err);
+
+                    res.should.have.status(400);
                     res.should.be.an('object');
+                    res.body.should.be.an('object').that.has.all.keys('status', 'message');
+
                     let { status, message } = res.body;
-                    status.should.equals(404);
-                    message.should.be.a('string').that.equals('User not found or password invalid');
+                    status.should.be.a('number');
+                    message.should.be.a('string').that.equals('Email must be a string');
+
                     done();
                 });
         });
-        it('TC 101-4 User successfully logged in', (done) => {
-            dbconnection.query(INSERT_USER_1, () => {
+
+        it('TC-101-3 When a non-valid password is used, a valid error should be returned', (done) => {
+            chai.request(server).post('/api/auth/login').auth(testToken, { type: 'bearer' }).send({
+                    emailAdress: "j.doe@server.com",
+                    //Password is not a string
+                    password: 9
+                })
+                .end((err, res) => {
+                    assert.ifError(err);
+
+                    res.should.have.status(400);
+                    res.should.be.an('object');
+                    res.body.should.be.an('object').that.has.all.keys('status', 'message');
+
+                    let { status, message } = res.body;
+                    status.should.be.a('number');
+                    message.should.be.a('string').that.equals('Password must be a string');
+
+                    done();
+                });
+        });
+
+        it(`TC-101-4 If the user doesn't exist, a valid message should be returned`, (done) => {
+            chai.request(server).post('/api/auth/login').auth(testToken, { type: 'bearer' }).send({
+                    emailAdress: "thisUserDoesnt@exist.com",
+                    password: "Geheimwachtwoord11!"
+                })
+                .end((err, res) => {
+                    assert.ifError(err);
+
+                    res.should.have.status(404);
+                    res.should.be.an('object');
+                    res.body.should.be.an('object').that.has.all.keys('status', 'message');
+
+                    let { status, message } = res.body;
+                    status.should.be.a('number');
+                    message.should.be.a('string').that.equals('User not found or password invalid');
+
+                    done();
+                });
+        });
+
+        it('TC-101-5 User succesfully logged in', (done) => {
+            pool.query(INSERT_USER_1, () => {
                 chai.request(server).post('/auth/login').send({
                         emailAdress: "d.ambesi@avans.nl",
-                        password: "secret"
+                        password: "Geheimwachtwoord11!"
                     })
                     .end((err, res) => {
                         assert.ifError(err);
+
+                        res.should.have.status(200);
                         res.should.be.an('object');
+                        res.body.should.be.an('object').that.has.all.keys('status', 'result');
+
                         let { status, result } = res.body;
-                        status.should.equals(200);
+                        status.should.be.a('number');
+                        logger.debug(result);
+
                         done();
                     });
             });
@@ -119,62 +170,251 @@ describe('UC-User', () => {
             });
         });
 
-        it('TC-201-1 When a required input is missing, a valid error should be returned', (done) => {
+        it('TC-201-1 When a required input is missing, a validation error should be returned', (done) => {
             chai
                 .request(server)
                 .post('/api/user')
                 .send({
-                    // firstName ontbreekt
-                    lastName: 'Lakens',
-                    emailAdress: 'rens@lakens.org',
+                    //email is missing
+                    firstName: 'firstName',
+                    lastName: 'lastName',
+                    street: 'Lovensdijkstraat 61',
+                    city: 'Breda',
+                    isActive: 1,
+                    password: 'Secret11',
+                    phoneNumber: '0612345678',
                 })
                 .end((err, res) => {
-                    assert.ifError(err);
-                    res.should.be.an('object');
-                    let { status, message } = res.body;
-                    status.should.equals(400);
-                    message.should.be.a('string').that.equals('The firstname must be a string');
-                    done();
-                });
-        });
-        it('TC-201-2 When an emailAdress is not valid, a valid error should be returned', (done) => {
+                    res.should.be.an('object')
+                    let { status, message } = res.body
+                    status.should.equal(400)
+                    message.should.be.a('string').that.equals('The emailAddress must be a string')
+                })
             chai
                 .request(server)
                 .post('/api/user')
                 .send({
-                    firstName: 'Rens',
-                    lastName: 'Lakens',
-                    emailAdress: 'rens@lakens.org',
+                    //first name is missing
+                    lastName: 'lastName',
+                    street: 'Lovensdijkstraat 61',
+                    city: 'Breda',
+                    isActive: 1,
+                    password: 'Secret11',
+                    emailAdress: '2182556@avans.nl',
+                    phoneNumber: '0612345678',
                 })
                 .end((err, res) => {
-                    res.should.be.an('object');
-                    let { status, message } = res.body;
-                    status.should.equals(400);
-                    message.should.be.a('string').that.equals('The street must be a string');
-                    done();
-                });
-        });
-        it('TC-201-3 When a password is not valid, a valid error should be returned', (done) => {
+                    res.should.be.an('object')
+                    let { status, message } = res.body
+                    status.should.equal(400)
+                    message.should.be.a('string').that.equals('The firstname must be a string')
+                })
             chai
                 .request(server)
                 .post('/api/user')
                 .send({
-                    firstName: 'Rens',
-                    lastName: 'Lakens',
-                    emailAdress: 'rens@lakens.org',
-                    password: 9,
+                    //last name is missing
+                    firstName: 'firstName',
+                    street: 'Lovensdijkstraat 61',
+                    city: 'Breda',
+                    isActive: 1,
+                    password: 'Secret11',
+                    emailAdress: '2182556@avans.nl',
+                    phoneNumber: '0612345678',
+                })
+                .end((err, res) => {
+                    res.should.be.an('object')
+                    let { status, message } = res.body
+                    status.should.equal(400)
+                    message.should.be.a('string').that.equals('The lastName must be a string')
+                })
+            chai
+                .request(server)
+                .post('/api/user')
+                .send({
+                    //password is missing
+                    firstName: 'firstName',
+                    lastName: 'lastName',
+                    street: 'Lovensdijkstraat 61',
+                    city: 'Breda',
+                    isActive: 1,
+                    emailAdress: '2182556@avans.nl',
+                    phoneNumber: '0612345678',
+                })
+                .end((err, res) => {
+                    res.should.be.an('object')
+                    let { status, message } = res.body
+                    status.should.equal(400)
+                    message.should.be.a('string').that.equals('The password must a string')
+                    done()
+                });
+        });
+        it('TC-201-2 When an invalid email address is submitted, a validation error should be returned', (done) => {
+            chai
+                .request(server)
+                .post('/api/user')
+                .send({
+                    emailAdress: 'email@adress',
+                    firstName: 'firstName',
+                    lastName: 'lastName',
+                    street: 'Lovensdijkstraat 61',
+                    city: 'Breda',
+                    isActive: 1,
+                    password: 'Secret11',
+                    phoneNumber: '0612345678',
+                })
+                .end((err, res) => {
+                    res.should.be.an('object')
+                    let { status, message } = res.body
+                    status.should.equal(400)
+                    message.should.be
+                        .a('string')
+                        .that.equals('emailAdress is invalid')
+                })
+            chai
+                .request(server)
+                .post('/api/user')
+                .send({
+                    emailAdress: 'emailadress.com',
+                    firstName: 'firstName',
+                    lastName: 'lastName',
+                    street: 'Lovensdijkstraat 61',
+                    city: 'Breda',
+                    isActive: 1,
+                    password: 'Secret11',
+                    phoneNumber: '0612345678',
+                })
+                .end((err, res) => {
+                    res.should.be.an('object')
+                    let { status, message } = res.body
+                    status.should.equal(400)
+                    message.should.be
+                        .a('string')
+                        .that.equals('emailAdress is invalid')
+                    done()
+                });
+        });
+        it('TC-201-3 When an invalid password is submitted, a validation error should be returned', (done) => {
+            chai
+                .request(server)
+                .post('/api/user')
+                .send({
+                    //password too short
+                    password: 'Secret1',
+                    emailAdress: 'email@adress.com',
+                    firstName: 'firstName',
+                    lastName: 'lastName',
+                    street: 'Lovensdijkstraat 61',
+                    city: 'Breda',
                     isActive: 1,
                     phoneNumber: '0612345678',
-                    roles: 'editor',
-                    street: 'Peppelgaarde',
-                    city: 'Etten-Leur',
                 })
                 .end((err, res) => {
-                    res.should.be.an('object');
-                    let { status, message } = res.body;
-                    status.should.equals(400);
-                    message.should.be.a('string').that.equals('The password must a string');
-                    done();
+                    res.should.be.an('object')
+                    let { status, message } = res.body
+                    status.should.equal(400)
+                    message.should.be
+                        .a('string')
+                        .that.equals(
+                            'password is invalid'
+                        )
+                })
+            chai
+                .request(server)
+                .post('/api/user')
+                .send({
+                    //password does not contain capital letter
+                    password: 'secret11',
+                    emailAdress: 'email@adress.com',
+                    firstName: 'firstName',
+                    lastName: 'lastName',
+                    street: 'Lovensdijkstraat 61',
+                    city: 'Breda',
+                    isActive: 1,
+                    phoneNumber: '0612345678',
+                })
+                .end((err, res) => {
+                    res.should.be.an('object')
+                    let { status, message } = res.body
+                    status.should.equal(400)
+                    message.should.be
+                        .a('string')
+                        .that.equals(
+                            'password is invalid'
+                        )
+                })
+            chai
+                .request(server)
+                .post('/api/user')
+                .send({
+                    //password does not contain numerical value
+                    password: 'Secretone',
+                    emailAdress: 'email@adress.com',
+                    firstName: 'firstName',
+                    lastName: 'lastName',
+                    street: 'Lovensdijkstraat 61',
+                    city: 'Breda',
+                    isActive: 1,
+                    phoneNumber: '0612345678',
+                })
+                .end((err, res) => {
+                    res.should.be.an('object')
+                    let { status, message } = res.body
+                    status.should.equal(400)
+                    message.should.be
+                        .a('string')
+                        .that.equals(
+                            'password is invalid'
+                        )
+                })
+            chai
+                .request(server)
+                .post('/api/user')
+                .send({
+                    //password does not contain lowercase letter
+                    password: 'SECRET11',
+                    emailAdress: 'email@adress.com',
+                    firstName: 'firstName',
+                    lastName: 'lastName',
+                    street: 'Lovensdijkstraat 61',
+                    city: 'Breda',
+                    isActive: 1,
+                    phoneNumber: '0612345678',
+                })
+                .end((err, res) => {
+                    res.should.be.an('object')
+                    let { status, message } = res.body
+                    status.should.equal(400)
+                    message.should.be
+                        .a('string')
+                        .that.equals(
+                            'password is invalid'
+                        )
+                })
+            chai
+                .request(server)
+                .post('/api/user')
+                .send({
+                    //password contains line break
+                    password: 'Secret1\n1',
+                    emailAdress: 'email@adress.com',
+                    firstName: 'firstName',
+                    lastName: 'lastName',
+                    street: 'Lovensdijkstraat 61',
+                    city: 'Breda',
+                    isActive: 1,
+                    phoneNumber: '0612345678',
+                })
+                .end((err, res) => {
+                    res.should.be.an('object')
+                    let { status, message } = res.body
+                    status.should.equal(400)
+                    message.should.be
+                        .a('string')
+                        .that.equals(
+                            'password is invalid'
+                        )
+                    done()
                 });
         });
         it('TC-201-4 When a user already exists with the same email, a valid error should be returned', (done) => {
@@ -197,7 +437,7 @@ describe('UC-User', () => {
                         res.should.be.an('object');
                         let { status, message } = res.body;
                         status.should.equals(409);
-                        message.should.be.a('string').that.equals('User has not been added');
+                        message.should.be.a('string').that.equals('Email is already used');
                         done();
                     });
             });
@@ -228,84 +468,7 @@ describe('UC-User', () => {
         });
     });
 
-    // describe('UC-202 View of users', () => {
-    //     afterEach((done) => {
-    //         logger.debug('afterEach called');
-    //         // Maak testdatabase leeg zodat we testen kunnen uitvoeren
-    //         pool.query(CLEAR_USERS_TABLE, function(err) {
-    //             if (err) throw err
-    //             logger.debug('afterEach done');
-    //             done();
-    //         });
-    //     });
-    //     it('TC 202-1 Zero users should be returned', (done) => {
-    //         chai
-    //             .request(server)
-    //             .get('api/user')
-    //             .set({ Authorization: `Bearer ${validToken}` })
-    //             .end((err, res) => {
-    //                 res.should.be.an('object');
-    //                 let { status, result } = res.body;
-    //                 status.should.equals(200);
-    //                 result.should.be.an('array').to.eql([]);
-    //                 done();
-    //             });
-    //     });
-    //     it('TC 202-2 Two users should be returned', (done) => {
-    //         pool.query(INSERT_USER_1, () => {
-    //             pool.query(INSERT_USER_2, () => {
-    //                 chai.request(server).get("/api/user/")
-    //                     .end((err, res) => {
-    //                         res.should.be.an('object');
-    //                         let { status, result } = res.body;
-    //                         status.should.equals(200);
-    //                         result.should.be.an('array').to.have.lengthOf(2);
-    //                         done();
-    //                     });
-    //             });
-    //         });
-    //     });
-    //     it('TC 202-3 When search item does not match firstname, a valid error should be returned.', (done) => {
-    //         pool.query(INSERT_USER_1, () => {
-    //             chai.request(server).get("/api/user?firstName=gebruiker")
-    //                 .end((err, res) => {
-    //                     res.should.be.an('object');
-    //                     let { status, result } = res.body;
-    //                     status.should.equals(200);
-    //                     result.should.be.an('array').to.eql([]);
-    //                     done();
-    //                 });
-    //         });
-    //     });
-    //     it('TC 202-5 Active users should be returned', (done) => {
-    //         pool.query(INSERT_USER_1, () => {
-    //             pool.query(INSERT_USER_2, () => {
-    //                 chai.request(server).get('/api/user?isActive=true')
-    //                     .end((err, res) => {
-    //                         res.should.be.an('object');
-    //                         let { status, result } = res.body;
-    //                         status.should.equals(200);
-    //                         done();
-    //                     });
-    //             });
-    //         });
-    //     });
-    //     it('TC 202-6 User that matches the search item should be returned', (done) => {
-    //         pool.query(INSERT_USER_1, () => {
-    //             pool.query(INSERT_USER_2, () => {
-    //                 chai.request(server).get('/api/user?isActive=true')
-    //                     .end((err, res) => {
-    //                         res.should.be.an('object');
-    //                         let { status, result } = res.body;
-    //                         status.should.equals(200);
-    //                         done();
-    //                     });
-    //             });
-    //         });
-    //     });
-    // });
-
-    describe('UC-203 Requiring user profile', () => {
+    describe('UC-202 View of users', () => {
         afterEach((done) => {
             logger.debug('afterEach called');
             // Maak testdatabase leeg zodat we testen kunnen uitvoeren
@@ -315,9 +478,97 @@ describe('UC-User', () => {
                 done();
             });
         });
+        it('TC-202-1 When all users are requested an empty database should return 0 users', (done) => {
+            chai
+                .request(server)
+                .get('/api/user')
+                .set('authorization', 'Bearer ' + testToken)
+                .end((err, res) => {
+                    let { status, result } = res.body
+                    status.should.equal(200)
+                    result.should.be.an('array').that.is.empty
+                    done()
+                })
+        })
+
+        it('TC-202-2 When all users are requested a database with 3 users should return 3 users', (done) => {
+            pool.query(INSERT_USERS, () => {
+                chai
+                    .request(server)
+                    .get('/api/user')
+                    .set('authorization', 'Bearer ' + testToken)
+                    .end((err, res) => {
+                        let { status, result } = res.body
+                        status.should.equal(200)
+                        result.should.be.an('array').that.has.a.lengthOf(3)
+                        done()
+                    })
+            });
+        });
+
+        it('TC-202-3 When requesting a user by a non-existing name, an empty list should be returned', (done) => {
+            chai
+                .request(server)
+                .get('/api/user?firstName=nonexistent')
+                .set('authorization', 'Bearer ' + testToken)
+                .end((err, res) => {
+                    let { status, result } = res.body
+                    status.should.equal(200)
+                    result.should.be.an('array').that.is.empty
+                    done()
+                })
+        })
+
+        it('TC-202-4 When requesting users by isActive=false, a list should be returned with users that are not active', (done) => {
+            chai
+                .request(server)
+                .get('/api/user?isActive=false')
+                .set('authorization', 'Bearer ' + testToken)
+                .end((err, res) => {
+                    let { status, result } = res.body
+                    status.should.equal(200)
+                    result.should.be.an('array')
+                    result.every((i) => i.should.include({ isActive: false }))
+                    done()
+                })
+        })
+
+        it('TC-202-5 When requesting users by isActive=true, a list should be returned with users that are active', (done) => {
+            chai
+                .request(server)
+                .get('/api/user?isActive=true')
+                .set('authorization', 'Bearer ' + testToken)
+                .end((err, res) => {
+                    let { status, result } = res.body
+                    status.should.equal(200)
+                    result.should.be.an('array')
+                    result.every((i) => i.should.include({ isActive: true }))
+                    done()
+                })
+        })
+
+        it('TC-202-6 When requesting a user by an existing name, one or more users should be returned', (done) => {
+            pool.query(INSERT_USERS, (function(err) {
+                if (err) throw err;
+                chai
+                    .request(server)
+                    .get('/api/user?firstName=first')
+                    .set('authorization', 'Bearer ' + testToken)
+                    .end((err, res) => {
+                        let { status, result } = res.body
+                        status.should.equal(200)
+                        result.should.be.an('array').that.is.not.empty
+                        result.every((i) => i.should.include({ firstName: 'first' }))
+                        done()
+                    });
+            }));
+        });
+    });
+
+    describe('UC-203 Requiring user profile', () => {
         it('TC 203-1 When the token is not valid, a valid error should be returned', (done) => {
             chai.request(server).get('/api/user/profile')
-                .set({ Authorization: 'Bearer asdfjlasjffslasdjfs' })
+                .set('authorization', 'Bearer ' + ' ')
                 .end((err, res) => {
                     res.should.be.an('object');
                     let { status, message } = res.body;
@@ -326,14 +577,18 @@ describe('UC-User', () => {
                     done();
                 });
         });
-        it('TC 203-2 Valid token, user should be returned', (done) => {
+        it('TC-203-2 Token is valid', (done) => {
             pool.query(INSERT_USER_1, () => {
-                chai.request(server).get('/api/user')
-                    .set({ Authorization: validToken })
+                chai.request(server).get("/api/user")
+                    .set('authorization', 'Bearer ' + testToken)
                     .end((err, res) => {
+                        res.should.have.status(200);
                         res.should.be.an('object');
+                        res.body.should.be.an('object').that.has.all.keys('status', 'result');
+
                         let { status, result } = res.body;
-                        status.should.equals(200);
+                        status.should.be.a('number');
+
                         done();
                     });
             });
@@ -352,7 +607,7 @@ describe('UC-User', () => {
         });
         it('TC 204-1 When the token is not valid, a valid error should be returned', (done) => {
             chai.request(server).get('/api/user/1')
-                .set({ Authorization: 'Bearer asdfjlasjffslasdjfs' })
+                .set('authorization', 'Bearer ' + ' ')
                 .end((err, res) => {
                     res.should.be.an('object');
                     let { status, message } = res.body;
@@ -365,7 +620,7 @@ describe('UC-User', () => {
             chai
                 .request(server)
                 .get('/api/user/9999')
-                .set({ Authorization: validToken })
+                .set('authorization', 'Bearer ' + testToken)
                 .end((err, res) => {
                     res.should.be.an('object');
                     let { status, message } = res.body;
@@ -377,7 +632,7 @@ describe('UC-User', () => {
         it('TC-204-3 When a user whose ID does exist is requested, a valid response should be returned', (done) => {
             pool.query(INSERT_USER_1, () => {
                 chai.request(server).get('/api/user/1')
-                    .set({ Authorization: validToken })
+                    .set('authorization', 'Bearer ' + testToken)
                     .end((err, res) => {
                         res.should.be.an('object');
                         let { status, result } = res.body;
@@ -401,7 +656,7 @@ describe('UC-User', () => {
         it('TC-205-1 When a required field is missing, a valid error should be returned', (done) => {
             pool.query(INSERT_USER_1, () => {
                 chai.request(server).put('/api/user/1')
-                    .set({ Authorization: validToken })
+                    .set('authorization', 'Bearer ' + testToken)
                     .send({
                         firstName: "firstName",
                         lastName: "last",
@@ -426,7 +681,7 @@ describe('UC-User', () => {
         it('TC 205-3 When the phonenumber does not match the regex, a valid error should be returned', (done) => {
             pool.query(INSERT_USER_1, () => {
                 chai.request(server).put('/api/user/1')
-                    .set({ Authorization: validToken })
+                    .set('authorization', 'Bearer ' + testToken)
                     .send({
                         firstName: "firstName",
                         lastName: "last",
@@ -463,61 +718,60 @@ describe('UC-User', () => {
             chai
                 .request(server)
                 .put('/api/user/9999')
-                .set({ Authorization: validToken })
+                .set('authorization', 'Bearer ' + testToken)
                 .send(user)
                 .end((err, res) => {
                     res.should.be.an('object');
                     let { status, result } = res.body;
                     status.should.equal(400);
-                    result.should.be.a('string').that.equals('User with this provided id does not exist');
+                    result.should.be.a('string').that.equals('User does not exist');
                     done();
                 });
         });
         it('TC 205-5 When the user is not authorized, a valid error should be returned', (done) => {
             pool.query(INSERT_USER_1, () => {
-                chai.request(server).put('/api/user/1')
-                    .set({ Authorization: 'Bearer asldfjaslasdfasdf' })
-                    .send({
-                        firstName: 'Rens',
-                        lastName: 'Lakens',
-                        emailAdress: 'rens@lakens.org',
-                        password: 'Geh3imWachtwoord!',
-                        isActive: 1,
-                        phoneNumber: '0612345678',
-                        roles: 'editor',
-                        street: 'Peppelgaarde',
-                        city: 'Etten-Leur',
-                    })
+                chai
+                    .request(server)
+                    //wrong user
+                    .put('/api/user/1')
+                    .set('authorization', 'Bearer ' + ' ')
                     .end((err, res) => {
-                        assert.ifError(err);
-                        res.should.be.an('object');
-                        let { status, message } = res.body;
-                        status.should.equals(401);
-                        message.should.be.a('string').that.equals('Not authorized');
-                        done();
-                    });
+                        res.should.be.an('object')
+                        let { status, message } = res.body
+                        status.should.equal(401)
+                        message.should.be
+                            .a('string')
+                            .that.equals('Not authorized')
+                        done()
+                    })
             });
         });
         it('TC-205-6 When a user is succesfully updated, a valid response should be returned', (done) => {
             pool.query(INSERT_USER_1, () => {
-                chai.request(server).put('/api/user/1')
-                    .set({ Authorization: validToken })
+                chai
+                    .request(server)
+                    .put('/api/user/1')
+                    .set('authorization', 'Bearer ' + testToken)
                     .send({
-                        firstName: 'Test',
-                        lastName: 'Test',
-                        emailAdress: 'd.ambesi@avans.nl',
-                        password: 'Geh3imWachtwoord!',
+                        emailAdress: 'rens@lakens.org',
+                        firstName: 'Rens',
+                        lastName: 'Lakens',
+                        street: 'Peppelgaarde 59',
+                        city: 'Etten-Leur',
                         isActive: 1,
+                        password: 'Geheimwachtwoord!11',
                         phoneNumber: '0612345678',
-                        roles: 'editor',
-                        street: 'Lovensdijkstraat',
-                        city: 'Breda',
                     })
                     .end((err, res) => {
-                        res.should.be.an('object');
-                        let { status, result } = res.body;
-                        status.should.equals(200);
-                        done();
+                        res.should.be.an('object')
+                        let { status, result } = res.body
+                        status.should.equal(200)
+                        result.should.be
+                            .an('object')
+                            .that.includes.keys('id', 'firstName', 'lastName', 'emailAdress')
+                        result.should.include({ id: '1' })
+                        result.should.include({ emailAdress: 'rens@lakens.org' })
+                        done()
                     });
             });
         });
@@ -525,16 +779,20 @@ describe('UC-User', () => {
 });
 
 describe('UC-206 Deleting user', () => {
-    it('TC-206-1 When a user does not exist, a valid error should be returned', (done) => {
-        chai
-            .request(server)
-            .delete('/api/user/9999')
-            .set({ Authorization: validToken })
+    it("TC 206-1 When a user does not exist while trying to delete, an error should be returned", (done) => {
+        chai.request(server)
+            .delete("/api/user/999")
+            .set('authorization', 'Bearer ' + testToken)
             .end((err, res) => {
+                assert.ifError(err);
+                res.should.have.status(400);
                 res.should.be.an('object');
-                let { status, result } = res.body;
-                status.should.equal(400);
-                result.should.be.a('string').that.equals('User does not exist');
+                res.body.should.be.an('object').that.has.all.keys('status', 'message');
+
+                let { status, message } = res.body;
+                status.should.be.a('number');
+                message.should.be.a('string').that.contains('User does not exist');
+
                 done();
             });
     });
@@ -542,7 +800,7 @@ describe('UC-206 Deleting user', () => {
         pool.query(INSERT_USER_1, () => {
             chai.request(server)
                 .delete('/api/user/1')
-                .set({ Authorization: 'Bearer adsfasdasdfasdf' })
+                .set('authorization', 'Bearer ' + ' ')
                 .end((err, res) => {
                     assert.ifError(err);
                     res.should.be.an('object');
@@ -557,27 +815,31 @@ describe('UC-206 Deleting user', () => {
         pool.query(INSERT_USER_1, () => {
             chai.request(server)
                 .delete('/api/user/1')
-                .set({ Authorization: validToken })
+                .set('authorization', 'Bearer ' + testToken)
                 .end((err, res) => {
                     assert.ifError(err);
                     res.should.be.an('object');
                     let { status, message } = res.body;
                     status.should.equals(403);
-                    message.should.be.a('string').that.equals('You cannot delete an account that is not yours!');
+                    message.should.be.a('string').that.equals('You are not authorized to delete this user');
                     done();
                 });
         });
     });
-    it('TC-206-4 When a user is succesfully deleted, a valid response should be returned', (done) => {
-        pool.query(INSERT_USER_1, () => {
+    it("TC 206-4 User successfully deleted", (done) => {
+        pool.query(INSERT_USER_3, () => {
             chai.request(server)
-                .delete('/api/user/1')
-                .set({ Authorization: validToken })
+                .delete("/api/user/3")
+                .set('authorization', 'Bearer ' + testToken)
                 .end((err, res) => {
+                    res.should.have.status(200);
                     res.should.be.an('object');
+                    res.body.should.be.an('object').that.has.all.keys('status', 'message');
+
                     let { status, message } = res.body;
-                    status.should.equals(200);
-                    message.should.be.a('string').that.equals('Succesful deletion');
+                    status.should.be.a('number');
+                    message.should.be.a('string').that.contains('User is successfully deleted');
+
                     done();
                 });
         });

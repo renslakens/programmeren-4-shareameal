@@ -39,6 +39,19 @@ const INSERT_USERS = INSERT_USER_1 + INSERT_USER_2 + INSERT_USER_3;
 //     "(`firstName`, `lastName`, `street`, `city`, `password`, `emailAdress`, `phoneNumber`,`roles` )" +
 //     "VALUES ('Thijmen', 'Vuur', 'Lovensdijkstraat', 'Breda', 'U3lsdkfj!', 'test@avans.nl', '0612345678', 'editor');"
 
+function createLoginToken(server, loginDetails, done) {
+    chai.request(server)
+        .post('/auth/login')
+        .send(loginDetails)
+        .end(function(error, response) {
+            if (error) {
+                throw error;
+            }
+            let loginToken = response.body.token;
+            done(loginToken);
+        });
+}
+
 describe('UC-User', () => {
     // before((done) => {
     //     testToken = jwt.sign({ id: 1 }, jwtSecretKey);
@@ -137,14 +150,10 @@ describe('UC-User', () => {
         });
 
         it('TC-101-5 User succesfully logged in', (done) => {
-            pool.query(INSERT_USER_1, () => {
-                chai.request(server).post('/auth/login').send({
-                        emailAdress: "d.ambesi@avans.nl",
-                        password: "Geheimwachtwoord11!"
-                    })
-                    .end((err, res) => {
-                        assert.ifError(err);
-
+            createLoginToken(server, { emailAdress: "d.ambesi@avans.nl", password: "Geheimwachtwoord11!" }, done, function(header) {
+                chai.request(server).post('/auth/login').set('authorization', header)
+                    .expect(200)
+                    .expect((res) => {
                         res.should.have.status(200);
                         res.should.be.an('object');
                         res.body.should.be.an('object').that.has.all.keys('status', 'result');
@@ -152,7 +161,8 @@ describe('UC-User', () => {
                         let { status, result } = res.body;
                         status.should.be.a('number');
                         logger.debug(result);
-
+                    })
+                    .end((err, res) => {
                         done();
                     });
             });
@@ -779,28 +789,11 @@ describe('UC-User', () => {
 });
 
 describe('UC-206 Deleting user', () => {
-    it("TC 206-1 When a user does not exist while trying to delete, an error should be returned", (done) => {
-        chai.request(server)
-            .delete("/api/user/999")
-            .set('authorization', 'Bearer ' + testToken)
-            .end((err, res) => {
-                assert.ifError(err);
-                res.should.have.status(400);
-                res.should.be.an('object');
-                res.body.should.be.an('object').that.has.all.keys('status', 'message');
-
-                let { status, message } = res.body;
-                status.should.be.a('number');
-                message.should.be.a('string').that.contains('User does not exist');
-
-                done();
-            });
-    });
     it('TC 206-2 When the user is not authorized, a valid error should be returned', (done) => {
-        pool.query(INSERT_USER_1, () => {
+        createLoginToken(server, { emailAdress: "d.ambesi@avans.nl", password: "Geheimwachtwoord11!" }, done, function(header) {
             chai.request(server)
                 .delete('/api/user/1')
-                .set('authorization', 'Bearer ' + ' ')
+                .set('authorization', header)
                 .end((err, res) => {
                     assert.ifError(err);
                     res.should.be.an('object');
@@ -827,10 +820,10 @@ describe('UC-206 Deleting user', () => {
         });
     });
     it("TC 206-4 User successfully deleted", (done) => {
-        pool.query(INSERT_USER_3, () => {
+        createLoginToken(server, { emailAdress: "d.ambesi@avans.nl", password: "Geheimwachtwoord11!" }, done, function(header) {
             chai.request(server)
                 .delete("/api/user/3")
-                .set('authorization', 'Bearer ' + testToken)
+                .set('authorization', header)
                 .end((err, res) => {
                     res.should.have.status(200);
                     res.should.be.an('object');

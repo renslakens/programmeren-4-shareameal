@@ -114,58 +114,63 @@ let controller = {
             }
         });
     },
-    updateMeal: (req, res) => {
-        const mealInfo = req.body;
-        const mealId = req.params.id;
-        const tokenCookId = req.userId;
-        logger.debug("MealId =", mealId);
-        logger.debug("TokenUserId =", tokenCookId);
-
-        pool.query('SELECT cookId FROM meal WHERE id = ?', mealId, function(dbSelectError, selectResults, selectFields) {
-            if (dbSelectError) {
-                logger.error(dbSelectError);
-                res.status(500).json({
-                    status: 500,
-                    result: "Error"
-                });
+    updateMeal: (req, res, next) => {
+        if (req.headers && req.headers.authorization) {
+            var authorization = req.headers.authorization.split(' ')[1],
+                decoded;
+            try {
+                decoded = jwt.verify(authorization, jwtSecretKey);
+            } catch (e) {
                 return;
             }
+            const newMealdata = req.body;
+            const userId = decoded.userId;
+            const mealId = req.params.id;
 
-            if (selectResults.length > 0) {
-                logger.debug("Results:", selectResults);
-                if (selectResults[0].cookId == tokenCookId) {
-                    pool.query('UPDATE meal SET ? WHERE id = ? AND cookId = ?', [mealInfo, mealId, tokenCookId], function(dbUpdateError, updateResults, updateFields) {
-                        if (dbUpdateError) {
-                            logger.error(dbUpdateError);
-                            res.status(500).json({
-                                status: 500,
-                                result: "Error"
-                            });
-                            return;
+            newMealdata.allergenes = newMealdata.allergenes.join(",");
+
+            dbconnection.query(
+                `SELECT cookId FROM meal WHERE id = ${mealId}`,
+                (err, result, fields) => {
+                    if (err) {
+                        const error = {
+                            status: 500,
+                            message: err.message,
+                        };
+                        next(error);
+                    }
+                    //Kijk of meal bestaat
+                    else if (result.length > 0) {
+                        //Kijk of meal van user is
+                        console.log(result.length);
+                        if (result[0].cookId == userId || result[0].cookId == null) {
+                            dbconnection.query(
+                                `UPDATE meal SET ? WHERE id = ?`, [newMealdata, mealId],
+                                (err, results) => {
+                                    //Update meal
+                                    res.status(200).json({
+                                        status: 200,
+                                        result: newMealdata,
+                                    });
+                                }
+                            );
+                        } else {
+                            const error = {
+                                status: 403,
+                                message: "You are not the owner of this meal",
+                            };
+                            next(error);
                         }
-
-                        res.status(200).json({
-                            status: 200,
-                            message: `${mealId} successfully updated`,
-                            result: {
-                                id: mealId,
-                                ...mealInfo
-                            }
-                        });
-                    });
-                } else {
-                    res.status(403).json({
-                        status: 403,
-                        message: "Not the creator of the meal"
-                    });
+                    } else {
+                        const error = {
+                            status: 404,
+                            message: "Meal does not exist",
+                        };
+                        next(error);
+                    }
                 }
-            } else {
-                res.status(404).json({
-                    status: 404,
-                    message: "Meal does not exist"
-                });
-            }
-        });
+            );
+        }
     },
     deleteMeal: (req, res) => {
         const mealId = req.params.id;

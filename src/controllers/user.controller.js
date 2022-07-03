@@ -94,7 +94,7 @@ let controller = {
         let user = req.body;
 
         //Hash the password
-        user.password = bcrypt.hashSync(user.password, saltRounds);
+        //user.password = bcrypt.hashSync(user.password, saltRounds);
 
         //Insert the user object into the database
         pool.query(`INSERT INTO user SET ?`, user, function(dbError, result, fields) {

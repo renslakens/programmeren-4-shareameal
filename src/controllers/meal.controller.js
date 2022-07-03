@@ -1,6 +1,7 @@
 const assert = require('assert');
 const pool = require('../../dbconnection');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 const { jwtSecretKey } = require('../config/config');
 const logger = require('../config/config').logger;
 

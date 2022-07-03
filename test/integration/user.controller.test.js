@@ -4,6 +4,8 @@ const { it, afterEach } = require('mocha');
 const server = require('../../index');
 const pool = require('../../dbconnection');
 require('dotenv').config();
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
 const assert = require('assert');
 const jwt = require('jsonwebtoken');
 const { jwtSecretKey, logger } = require('../../src/config/config');
@@ -21,15 +23,15 @@ const CLEAR_DB = CLEAR_MEAL_TABLE + CLEAR_PARTICIPANTS_TABLE + CLEAR_USERS_TABLE
 
 const INSERT_USER_1 =
     'INSERT INTO `user` (`id`, `firstName`, `lastName`, `emailAdress`, `password`, `street`, `city` ) VALUES' +
-    '(4, "first", "last", "d.ambesi@avans.nl", "$2a$10$pY29wpb1ogDTiTm8kFNQC.J8.sxOP4oUWWbZFV72uFIJzZ1VI2imi", "street", "city");';
+    '(4, "first", "last", "d.ambesi@avans.nl", "Geheimwachtwoord11!", "street", "city");';
 
 const INSERT_USER_2 =
     'INSERT INTO `user` (`id`, `firstName`, `lastName`, `emailAdress`, `password`, `street`, `city` ) VALUES' +
-    '(5, "test", "test", "test@avans.nl", "$2a$10$pY29wpb1ogDTiTm8kFNQC.J8.sxOP4oUWWbZFV72uFIJzZ1VI2imi", "test", "test");';
+    '(5, "test", "test", "test@avans.nl", "Geheimwachtwoord11!", "test", "test");';
 
 const INSERT_USER_3 =
     'INSERT INTO `user` (`id`, `firstName`, `lastName`, `emailAdress`, `password`, `street`, `city` ) VALUES' +
-    '(6, "Rens", "Lakens", "asdf@lakens.org", "$2a$10$pY29wpb1ogDTiTm8kFNQC.J8.sxOP4oUWWbZFV72uFIJzZ1VI2imi", "test", "test");';
+    '(6, "Rens", "Lakens", "asdf@lakens.org", "Geheimwachtwoord11!", "test", "test");';
 
 const INSERT_USERS = INSERT_USER_1 + INSERT_USER_2 + INSERT_USER_3;
 

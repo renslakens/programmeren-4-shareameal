@@ -21,15 +21,15 @@ const CLEAR_DB = CLEAR_MEAL_TABLE + CLEAR_PARTICIPANTS_TABLE + CLEAR_USERS_TABLE
 
 const INSERT_USER_1 =
     'INSERT INTO `user` (`id`, `firstName`, `lastName`, `emailAdress`, `password`, `street`, `city` ) VALUES' +
-    '(4, "first", "last", "d.ambesi@avans.nl", "Geheimwachtwoord11!", "street", "city");';
+    '(4, "first", "last", "d.ambesi@avans.nl", "$2a$10$pY29wpb1ogDTiTm8kFNQC.J8.sxOP4oUWWbZFV72uFIJzZ1VI2imi", "street", "city");';
 
 const INSERT_USER_2 =
     'INSERT INTO `user` (`id`, `firstName`, `lastName`, `emailAdress`, `password`, `street`, `city` ) VALUES' +
-    '(5, "test", "test", "test@avans.nl", "Geheimwachtwoord11!", "test", "test");';
+    '(5, "test", "test", "test@avans.nl", "$2a$10$pY29wpb1ogDTiTm8kFNQC.J8.sxOP4oUWWbZFV72uFIJzZ1VI2imi", "test", "test");';
 
 const INSERT_USER_3 =
     'INSERT INTO `user` (`id`, `firstName`, `lastName`, `emailAdress`, `password`, `street`, `city` ) VALUES' +
-    '(6, "Rens", "Lakens", "asdf@lakens.org", "Geheimwachtwoord11!", "test", "test");';
+    '(6, "Rens", "Lakens", "asdf@lakens.org", "$2a$10$pY29wpb1ogDTiTm8kFNQC.J8.sxOP4oUWWbZFV72uFIJzZ1VI2imi", "test", "test");';
 
 const INSERT_USERS = INSERT_USER_1 + INSERT_USER_2 + INSERT_USER_3;
 
@@ -41,7 +41,7 @@ const INSERT_USERS = INSERT_USER_1 + INSERT_USER_2 + INSERT_USER_3;
 
 function createLoginToken(server, loginDetails, done) {
     chai.request(server)
-        .post('/auth/login')
+        .post('/api/auth/login')
         .send(loginDetails)
         .end(function(error, response) {
             if (error) {
@@ -54,10 +54,10 @@ function createLoginToken(server, loginDetails, done) {
 
 describe('UC-User', () => {
     describe('UC-101 login', () => {
-        afterEach((done) => {
+        beforeEach((done) => {
             logger.debug('afterEach called');
             // Maak testdatabase leeg zodat we testen kunnen uitvoeren
-            pool.query(CLEAR_USERS_TABLE, function(err) {
+            pool.query(CLEAR_DB + INSERT_USERS, function(err) {
                 if (err) throw err
                 logger.debug('afterEach done');
                 done();
@@ -145,27 +145,24 @@ describe('UC-User', () => {
                 });
         });
 
-        it('TC 101-5 User successfully logged in', (done) => {
-            pool.query(INSERT_USER_1, () => {
-                chai.request(server).post('/api/auth/login').send({
-                        emailAdress: "d.ambesi@avans.nl",
-                        password: "Geheimwachtwoord11!"
-                    })
-                    .end((err, res) => {
-                        assert.ifError(err);
-
-                        res.should.have.status(200);
-                        res.should.be.an('object');
-                        res.body.should.be.an('object').that.has.all.keys('status', 'result');
-
-                        let { status, result } = res.body;
-                        status.should.be.a('number');
-
-                        done();
-                    });
-            });
+        it('TC-101-5 User succesfully logged in', (done) => {
+            chai
+                .request(server)
+                .post('/api/auth/login')
+                .send({
+                    emailAdress: 'test@avans.nl',
+                    password: '$2a$10$pY29wpb1ogDTiTm8kFNQC.J8.sxOP4oUWWbZFV72uFIJzZ1VI2imi',
+                })
+                .end((err, res) => {
+                    res.should.be.an('object')
+                    let { status, result } = res.body
+                    status.should.equal(200)
+                    result.should.be.an('object').that.includes.key('token')
+                    result.should.include({ id: 5 })
+                    done()
+                });
         });
-    });
+    })
 
     describe('UC-201 Register as new user', () => {
         afterEach((done) => {

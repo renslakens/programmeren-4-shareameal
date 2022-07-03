@@ -53,10 +53,6 @@ function createLoginToken(server, loginDetails, done) {
 }
 
 describe('UC-User', () => {
-    // before((done) => {
-    //     testToken = jwt.sign({ id: 1 }, jwtSecretKey);
-    //     done();
-    // });
     describe('UC-101 login', () => {
         afterEach((done) => {
             logger.debug('afterEach called');
@@ -175,7 +171,7 @@ describe('UC-User', () => {
         afterEach((done) => {
             logger.debug('afterEach called');
             // Maak testdatabase leeg zodat we testen kunnen uitvoeren
-            pool.query(CLEAR_USERS_TABLE, function(err) {
+            pool.query(CLEAR_DB, function(err) {
                 if (err) throw err
                 logger.debug('afterEach done');
                 done();
@@ -484,7 +480,7 @@ describe('UC-User', () => {
         afterEach((done) => {
             logger.debug('afterEach called');
             // Maak testdatabase leeg zodat we testen kunnen uitvoeren
-            pool.query(CLEAR_USERS_TABLE, function(err) {
+            pool.query(CLEAR_DB, function(err) {
                 if (err) throw err
                 logger.debug('afterEach done');
                 done();

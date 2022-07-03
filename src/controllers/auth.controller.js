@@ -89,8 +89,8 @@ let controller = {
                         message: 'Not authorized',
                     })
                 } else if (payload) {
-                    logger.debug('token is valid', payload)
-                        // User has access, adds UserId from payload to the request
+                    logger.debug('token is valid', payload);
+                    // User has access, adds UserId from payload to the request
                     req.userId = payload.userId
                     next()
                 }

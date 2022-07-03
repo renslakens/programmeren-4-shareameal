@@ -13,7 +13,7 @@ router.get('/:id', mealController.validateId, mealController.getMealById);
 router.post('/', authController.validateToken, mealController.validateMeal, mealController.addMeal);
 
 //Edit specific meal
-router.post('/:id', authController.validateToken, mealController.validateId, mealController.updateMeal);
+router.put('/:id', authController.validateToken, mealController.validateId, mealController.updateMeal);
 
 //Delete specific meal
 router.delete('/:id', authController.validateToken, mealController.validateId, mealController.deleteMeal);

@@ -8,6 +8,7 @@ const jwtSecretKey = require('../config/config').jwtSecretKey;
 let controller = {
     login(req, res, next) {
         let user = req.body;
+        logger.debug("User with email: " + user.emailAdress + " is trying to login");
         pool.query('SELECT `id`, `emailAdress`, `password`, `firstName`, `lastName` FROM `user` WHERE `emailAdress` = ?', user.emailAdress, (err, rows, fields) => {
             if (err) {
                 logger.debug(err);
@@ -49,7 +50,8 @@ let controller = {
 
     validateLogin(req, res, next) {
         let user = req.body;
-        // Verify the input
+        logger.debug("Validate login called");
+        // Verifies the input
         try {
             assert(typeof user.emailAdress === 'string', 'Email must be a string');
             assert(typeof user.password === 'string', 'Password must be a string');
@@ -73,9 +75,10 @@ let controller = {
             res.status(401).json({
                 status: 401,
                 message: 'Authorization header is missing',
+                datetime: new Date().toISOString(),
             });
         } else {
-            // Remove the word 'Bearer ' from the headervalue
+            // Removes the word 'Bearer ' from the headervalue
             const token = authHeader.substring(7, authHeader.length)
 
             jwt.verify(token, jwtSecretKey, (err, payload) => {
@@ -87,7 +90,7 @@ let controller = {
                     })
                 } else if (payload) {
                     logger.debug('token is valid', payload)
-                        // User has access, add UserId from payload to the request
+                        // User has access, adds UserId from payload to the request
                     req.userId = payload.userId
                     next()
                 }

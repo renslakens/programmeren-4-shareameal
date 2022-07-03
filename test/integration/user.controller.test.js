@@ -21,15 +21,15 @@ const CLEAR_DB = CLEAR_MEAL_TABLE + CLEAR_PARTICIPANTS_TABLE + CLEAR_USERS_TABLE
 
 const INSERT_USER_1 =
     'INSERT INTO `user` (`id`, `firstName`, `lastName`, `emailAdress`, `password`, `street`, `city` ) VALUES' +
-    '(1, "first", "last", "d.ambesi@avans.nl", "Geheimwachtwoord11!", "street", "city");';
+    '(4, "first", "last", "d.ambesi@avans.nl", "Geheimwachtwoord11!", "street", "city");';
 
 const INSERT_USER_2 =
     'INSERT INTO `user` (`id`, `firstName`, `lastName`, `emailAdress`, `password`, `street`, `city` ) VALUES' +
-    '(2, "test", "test", "test@avans.nl", "Geheimwachtwoord11!", "test", "test");';
+    '(5, "test", "test", "test@avans.nl", "Geheimwachtwoord11!", "test", "test");';
 
 const INSERT_USER_3 =
     'INSERT INTO `user` (`id`, `firstName`, `lastName`, `emailAdress`, `password`, `street`, `city` ) VALUES' +
-    '(3, "Rens", "Lakens", "asdf@lakens.org", "Geheimwachtwoord11!", "test", "test");';
+    '(6, "Rens", "Lakens", "asdf@lakens.org", "Geheimwachtwoord11!", "test", "test");';
 
 const INSERT_USERS = INSERT_USER_1 + INSERT_USER_2 + INSERT_USER_3;
 
@@ -149,20 +149,22 @@ describe('UC-User', () => {
                 });
         });
 
-        it('TC-101-5 User succesfully logged in', (done) => {
-            createLoginToken(server, { emailAdress: "d.ambesi@avans.nl", password: "Geheimwachtwoord11!" }, done, function(header) {
-                chai.request(server).post('/auth/login').set('authorization', header)
-                    .expect(200)
-                    .expect((res) => {
+        it('TC 101-5 User successfully logged in', (done) => {
+            pool.query(INSERT_USER_1, () => {
+                chai.request(server).post('/api/auth/login').send({
+                        emailAdress: "d.ambesi@avans.nl",
+                        password: "Geheimwachtwoord11!"
+                    })
+                    .end((err, res) => {
+                        assert.ifError(err);
+
                         res.should.have.status(200);
                         res.should.be.an('object');
                         res.body.should.be.an('object').that.has.all.keys('status', 'result');
 
                         let { status, result } = res.body;
                         status.should.be.a('number');
-                        logger.debug(result);
-                    })
-                    .end((err, res) => {
+
                         done();
                     });
             });
@@ -641,7 +643,7 @@ describe('UC-User', () => {
         });
         it('TC-204-3 When a user whose ID does exist is requested, a valid response should be returned', (done) => {
             pool.query(INSERT_USER_1, () => {
-                chai.request(server).get('/api/user/1')
+                chai.request(server).get('/api/user/4')
                     .set('authorization', 'Bearer ' + testToken)
                     .end((err, res) => {
                         res.should.be.an('object');
@@ -760,7 +762,7 @@ describe('UC-User', () => {
             pool.query(INSERT_USER_1, () => {
                 chai
                     .request(server)
-                    .put('/api/user/1')
+                    .put('/api/user/4')
                     .set('authorization', 'Bearer ' + testToken)
                     .send({
                         emailAdress: 'rens@lakens.org',
@@ -779,7 +781,7 @@ describe('UC-User', () => {
                         result.should.be
                             .an('object')
                             .that.includes.keys('id', 'firstName', 'lastName', 'emailAdress')
-                        result.should.include({ id: '1' })
+                        result.should.include({ id: '4' })
                         result.should.include({ emailAdress: 'rens@lakens.org' })
                         done()
                     });

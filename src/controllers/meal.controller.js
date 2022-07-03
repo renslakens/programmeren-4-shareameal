@@ -1,6 +1,7 @@
 const assert = require('assert');
 const pool = require('../../dbconnection');
 const jwt = require('jsonwebtoken');
+const { jwtSecretKey } = require('../config/config');
 const logger = require('../config/config').logger;
 
 let controller = {
@@ -46,29 +47,25 @@ let controller = {
             next(error);
         }
     },
-    addMeal: (req, res) => {
+    addMeal: (req, res, next) => {
         let meal = req.body;
-        const cookId = req.userId
-        meal.cookId = cookId;
+        meal.allergenes = meal.allergenes.join(",");
 
         //Insert the user object into the database
         pool.query(`INSERT INTO meal SET ?`, meal, function(dbError, result, fields) {
             if (dbError) {
-                logger.error(dbError);
-                res.status(500).json({
-                    status: 500,
-                    result: "Error"
-                });
-            }
-
-            res.status(201).json({
-                status: 201,
-                result: {
+                console.log(dbError);
+            } else {
+                const resultMeal = {
                     id: result.insertId,
-                    cookId: cookId,
                     ...meal
                 }
-            });
+                res.status(201).json({
+                    status: 201,
+                    result: resultMeal
+                });
+                console.log(resultMeal);
+            }
         });
     },
     getAllMeals: (req, res) => {
@@ -115,6 +112,7 @@ let controller = {
         });
     },
     updateMeal: (req, res, next) => {
+        logger.debug("update meal called")
         if (req.headers && req.headers.authorization) {
             var authorization = req.headers.authorization.split(' ')[1],
                 decoded;
@@ -129,7 +127,7 @@ let controller = {
 
             newMealdata.allergenes = newMealdata.allergenes.join(",");
 
-            dbconnection.query(
+            pool.query(
                 `SELECT cookId FROM meal WHERE id = ${mealId}`,
                 (err, result, fields) => {
                     if (err) {
@@ -142,9 +140,9 @@ let controller = {
                     //Kijk of meal bestaat
                     else if (result.length > 0) {
                         //Kijk of meal van user is
-                        console.log(result.length);
+                        logger.debug(result.length);
                         if (result[0].cookId == userId || result[0].cookId == null) {
-                            dbconnection.query(
+                            pool.query(
                                 `UPDATE meal SET ? WHERE id = ?`, [newMealdata, mealId],
                                 (err, results) => {
                                     //Update meal

@@ -319,10 +319,10 @@ describe('UC-Meal', () => {
 
                         res.should.have.status(401);
                         res.should.be.an('object');
-                        res.body.should.be.an('object').that.has.all.keys('result', 'status');
+                        res.body.should.be.an('object').that.has.all.keys('status', 'message');
 
                         let { status, message } = res.body;
-                        status.should.be.a('number');
+                        status.should.be.a('number').that.equals(401);
                         message.should.be.a('string').that.contains('Not authorized');
 
                         done();

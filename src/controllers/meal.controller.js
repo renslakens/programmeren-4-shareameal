@@ -110,63 +110,64 @@ let controller = {
         });
     },
     updateMeal: (req, res, next) => {
-        logger.debug("update meal called")
-        if (req.headers && req.headers.authorization) {
-            var authorization = req.headers.authorization.split(' ')[1],
-                decoded;
-            try {
-                decoded = jwt.verify(authorization, jwtSecretKey);
-            } catch (e) {
-                return;
-            }
-            const newMealdata = req.body;
-            const userId = decoded.userId;
-            const mealId = req.params.id;
+        let meal = req.body;
+        const currentId = req.params.mealId;
 
-            newMealdata.allergenes = newMealdata.allergenes.join(",");
-
-            pool.query(
-                `SELECT cookId FROM meal WHERE id = ${mealId}`,
-                (err, result, fields) => {
-                    if (err) {
-                        const error = {
-                            status: 500,
-                            message: err.message,
-                        };
-                        next(error);
-                    }
-                    //Kijk of meal bestaat
-                    else if (result.length > 0) {
-                        //Kijk of meal van user is
-                        logger.debug(result.length);
-                        if (result[0].cookId == userId || result[0].cookId == null) {
-                            pool.query(
-                                `UPDATE meal SET ? WHERE id = ?`, [newMealdata, mealId],
-                                (err, results) => {
-                                    //Update meal
-                                    res.status(200).json({
-                                        status: 200,
-                                        result: newMealdata,
-                                    });
-                                }
-                            );
-                        } else {
-                            const error = {
-                                status: 403,
-                                message: "You are not the owner of this meal",
-                            };
-                            next(error);
-                        }
-                    } else {
-                        const error = {
-                            status: 404,
-                            message: "Meal does not exist",
-                        };
-                        next(error);
-                    }
-                }
-            );
+        if (meal.id != null) {
+            cookId = meal.id;
+        } else {
+            const auth = req.headers.authorization;
+            const token = auth.substring(7, auth.length);
+            const encodedLoad = jwt.decode(token);
+            cookId = encodedLoad.userId;
         }
+
+        meal.allergenes = `${meal.allergenes}`;
+
+        logger.info("Converted meal data: " + meal);
+
+        pool.query(
+            "UPDATE meal SET name = ? ,description = ?, isActive = ?,isVega = ?,isVegan = ?,isToTakeHome = ?,dateTime = ?,imageUrl = ?,allergenes = ?,maxAmountOfParticipants = ?, price = ? WHERE id = ?;", [
+                meal.name,
+                meal.description,
+                meal.isActive,
+                meal.isVega,
+                meal.isVegan,
+                meal.isToTakeHome,
+                meal.dateTime,
+                meal.imageUrl,
+                meal.allergenes,
+                meal.maxAmountOfParticipants,
+                meal.price,
+                currentId,
+            ],
+            function(error, result, fields) {
+                if (error) {
+                    const error = {
+                        status: 404,
+                        error: "error",
+                    };
+                    next(error);
+                } else if (result.affectedRows) {
+                    pool.query(
+                        `SELECT * FROM meal WHERE id = ${currentId};`,
+                        function(error, results, fields) {
+                            res.status(200).json({
+                                status: 200,
+                                result: results[0],
+                            });
+                            logger.warn(results[0]);
+                        }
+                    );
+                } else {
+                    const error = {
+                        status: 404,
+                        message: "Meal does not exist"
+                    };
+                    next(error);
+                }
+            }
+        );
     },
     deleteMeal: (req, res) => {
         const mealId = req.params.id;

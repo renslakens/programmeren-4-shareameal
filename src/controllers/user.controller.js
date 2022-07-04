@@ -193,6 +193,8 @@ let controller = {
     getUserProfile: (req, res) => {
         const userId = req.userId;
 
+        logger.debug(`getUserProfile called with userId: ${userId}`);
+
         pool.query('SELECT * FROM user WHERE id = ' + userId, function(dbError, results, fields) {
             if (dbError) {
                 logger.error(dbError);

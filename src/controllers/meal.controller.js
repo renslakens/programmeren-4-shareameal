@@ -111,7 +111,7 @@ let controller = {
     },
     updateMeal: (req, res, next) => {
         let meal = req.body;
-        const currentId = req.params.mealId;
+        const currentId = req.params.id;
 
         if (meal.id != null) {
             cookId = meal.id;

@@ -49,22 +49,64 @@ let controller = {
     },
     addMeal: (req, res, next) => {
         let meal = req.body;
-        meal.allergenes = meal.allergenes.join(",");
-        pool.query(`INSERT INTO meal SET ?`, meal, function(dbError, result, fields) {
-            if (dbError) {
-                console.log(dbError);
-            } else {
-                const resultMeal = {
-                    id: result.insertId,
-                    ...meal
+        let cookId = 1;
+        if (typeof meal.id != "undefined" && meal.id != null) {
+            cookId = meal.id;
+        } else {
+            const auth = req.headers.authorization;
+            const token = auth.substring(7, auth.length);
+            const encodedLoad = jwt.decode(token);
+            cookId = encodedLoad.userId;
+        }
+        meal.dateTime = meal.dateTime.replace("T", " ").substring(0, 19);
+
+        meal.allergenes = `${meal.allergenes}`;
+
+        logger.debug("meal " + meal.allergenes);
+        logger.debug(meal.dateTime);
+        logger.debug("Converted meal data: " + meal);
+
+        pool.query(
+            "INSERT INTO meal " +
+            "(name, description, isVega, isVegan, isToTakeHome, dateTime, imageUrl, maxAmountOfParticipants, price, allergenes, isActive, cookId) " +
+            "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);", [
+                meal.name,
+                meal.description,
+                meal.isVega,
+                meal.isVegan,
+                meal.isToTakeHome,
+                meal.dateTime,
+                meal.imageUrl,
+                meal.maxAmountOfParticipants,
+                meal.price,
+                meal.allergenes,
+                meal.isActive,
+                cookId,
+            ],
+            function(error, results, fields) {
+                if (error) {
+                    logger.debug("Could not add meal: " + meal[0]);
+                    logger.error(error);
+                    const err = {
+                        status: 409,
+                        message: "Could not add meal",
+                    };
+                    next(err);
+                } else {
+                    pool.query(
+                        `SELECT * FROM meal WHERE id = ${results.insertId};`,
+                        function(error, results, fields) {
+                            res.status(201).json({
+                                status: 201,
+                                result: results[0],
+                            });
+                            logger.warn("time " + results[0].dateTime);
+                            logger.info("Added meal: " + results);
+                        }
+                    );
                 }
-                res.status(201).json({
-                    status: 201,
-                    result: resultMeal
-                });
-                console.log(resultMeal);
             }
-        });
+        );
     },
     getAllMeals: (req, res) => {
         pool.query('SELECT * FROM meal', function(dbError, results, fields) {

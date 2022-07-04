@@ -1,7 +1,6 @@
 const assert = require('assert');
 const pool = require('../../dbconnection');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
 const { jwtSecretKey } = require('../config/config');
 const logger = require('../config/config').logger;
 
@@ -51,8 +50,6 @@ let controller = {
     addMeal: (req, res, next) => {
         let meal = req.body;
         meal.allergenes = meal.allergenes.join(",");
-
-        //Insert the user object into the database
         pool.query(`INSERT INTO meal SET ?`, meal, function(dbError, result, fields) {
             if (dbError) {
                 console.log(dbError);

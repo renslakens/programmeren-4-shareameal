@@ -119,7 +119,7 @@ let controller = {
             const auth = req.headers.authorization;
             const token = auth.substring(7, auth.length);
             const encodedLoad = jwt.decode(token);
-            cookId = encodedLoad.userId;
+            cookId = encodedLoad.id;
         }
 
         meal.allergenes = `${meal.allergenes}`;
